@@ -1,51 +1,347 @@
-<!-- Tambahkan di bagian <head> -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inventory Sekolah Minggu</title>
+  <script src="https://cdn.jsdelivr.net/npm/quagga@1.0.7/dist/quagga.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { padding: 16px; max-width: 1000px; margin: 0 auto; background: #f5f7fa; color: #333; }
+    h1, h2 { color: #2c3e50; margin-bottom: 16px; }
+    button {
+      padding: 8px 16px;
+      margin: 6px 4px;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover { background: #2980b9; }
+    .btn-back { background: #95a5a6; }
+    .btn-back:hover { background: #7f8c8d; }
+    .btn-danger { background: #e74c3c; }
+    .btn-danger:hover { background: #c0392b; }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      margin: 6px 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+    input[type="password"] { font-family: monospace; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; background: white; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    th { background: #ecf0f1; }
+    .page { display: none; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .active { display: block; }
+    #scanner-container {
+      width: 100%;
+      height: 300px;
+      position: relative;
+      background: #000;
+      margin: 16px 0;
+      border-radius: 8px;
+    }
+    .report-content { background: white; padding: 20px; }
+    .form-group { margin-bottom: 12px; }
+    label { display: block; margin-bottom: 4px; font-weight: bold; }
+  </style>
+</head>
+<body>
 
-<!-- Tambahkan di halaman Scan Barcode -->
-<div id="interactive" class="viewport"></div>
-<button id="startScan">▶️ Mulai Scan</button>
-<button id="stopScan" style="display:none;">⏹️ Stop Scan</button>
+<!-- LOGIN -->
+<div id="login-page" class="page active">
+  <h2>🔐 Login Inventory</h2>
+  <div class="form-group">
+    <label for="username">Username</label>
+    <input type="text" id="username" placeholder="Masukkan username" autocomplete="off" />
+  </div>
+  <div class="form-group">
+    <label for="password">Password</label>
+    <input type="password" id="password" placeholder="Masukkan password" />
+  </div>
+  <button onclick="login()">Masuk</button>
+  <div id="login-error" style="color: red; margin-top: 10px; display: none;"></div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard-page" class="page">
+  <h1>🏠 Dashboard Inventaris</h1>
+  <p>Selamat datang, <strong id="user-display">Admin</strong>!</p>
+  <button onclick="showPage('inventory-page')">📋 Daftar Inventaris</button>
+  <button onclick="showPage('add-page')">➕ Tambah Barang</button>
+  <button onclick="showPage('scan-page')">📷 Scan Barcode</button>
+  <button onclick="showPage('report-page')">📊 Laporan</button>
+  <button class="btn-danger" onclick="logout()">🚪 Logout</button>
+</div>
+
+<!-- DAFTAR INVENTARIS -->
+<div id="inventory-page" class="page">
+  <h2>📋 Daftar Inventaris</h2>
+  <button onclick="showPage('add-page')">➕ Tambah Barang</button>
+  <button class="btn-back" onclick="showPage('dashboard-page')">⬅️ Kembali</button>
+  <table id="inventory-table">
+    <thead>
+      <tr><th>Nama</th><th>Type</th><th>Lama</th><th>Baru</th><th>Qty</th><th>Status</th><th>Barcode</th></tr>
+    </thead>
+    <tbody id="inventory-body"></tbody>
+  </table>
+</div>
+
+<!-- TAMBAH BARANG -->
+<div id="add-page" class="page">
+  <h2>➕ Tambah Barang</h2>
+  <div class="form-group"><label>Nama Barang *</label><input type="text" id="name" required /></div>
+  <div class="form-group"><label>Type</label><input type="text" id="type" /></div>
+  <div class="form-group"><label>Qty Lama</label><input type="number" id="qtyLama" min="0" value="0" /></div>
+  <div class="form-group"><label>Qty Baru</label><input type="number" id="qtyBaru" min="0" value="0" /></div>
+  <div class="form-group">
+    <label>Status</label>
+    <select id="status">
+      <option>Baik</option>
+      <option>Rusak</option>
+      <option>Perlu Perbaikan</option>
+    </select>
+  </div>
+  <div class="form-group"><label>Catatan</label><textarea id="notes" rows="2"></textarea></div>
+  <button onclick="saveItem()">💾 Simpan</button>
+  <button class="btn-back" onclick="showPage('inventory-page')">⬅️ Kembali</button>
+</div>
+
+<!-- SCAN BARCODE -->
+<div id="scan-page" class="page">
+  <h2>📷 Scan Barcode</h2>
+  <div id="scanner-container"></div>
+  <div id="scan-result" style="margin-top: 16px; padding: 12px; background: #f9f9f9; border-radius: 6px;"></div>
+  <button onclick="initScanner()">▶️ Mulai Scan</button>
+  <button class="btn-back" onclick="showPage('dashboard-page')">⬅️ Kembali</button>
+</div>
+
+<!-- LAPORAN -->
+<div id="report-page" class="page">
+  <h2>📊 Laporan Inventaris</h2>
+  <button onclick="generatePDF()">📥 Download PDF</button>
+  <button class="btn-back" onclick="showPage('dashboard-page')">⬅️ Kembali</button>
+  <div id="report-content" class="report-content" style="display:none;">
+    <h2>DAFTAR INVENTARIS SIE SEKOLAH MINGGU</h2>
+    <p>TAHUN 2026</p>
+    <table border="1" cellpadding="8" style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr><th>NO</th><th>NAMA</th><th>TYPE</th><th>LAMA</th><th>BARU</th><th>QTY</th><th>STATUS</th><th>CATATAN</th></tr>
+      </thead>
+      <tbody id="report-body"></tbody>
+    </table>
+    <p style="margin-top:40px;">Tangerang, 31 Desember 2025</p>
+    <div style="display:flex;justify-content:space-between;width:50%;margin-top:60px;">
+      <div><p>St. Dameria Saragih</p><p>Ketua SM</p></div>
+      <div><p>Sanny Girsang</p><p>Sekretaris SM</p></div>
+    </div>
+  </div>
+</div>
 
 <script>
-document.getElementById('startScan').addEventListener('click', function() {
-    document.getElementById('startScan').style.display = 'none';
-    document.getElementById('stopScan').style.display = 'inline';
-    
-    Quagga.init({
-        inputStream: {
-            name: "Live",
-            type: "LiveStream",
-            target: document.querySelector('#interactive'),
-            constraints: {
-                width: 640,
-                height: 480,
-                facingMode: "environment"
-            },
-        },
-        decoder: {
-            readers: ["code_128_reader", "ean_reader", "ean_8_reader", 
-                     "code_39_reader", "code_39_vin_reader", "upc_reader"]
-        }
-    }, function(err) {
-        if (err) {
-            console.error(err);
-            alert("Gagal mengakses kamera!");
-            return;
-        }
-        Quagga.start();
-    });
-    
-    Quagga.onDetected(function(data) {
-        alert("Barcode terdeteksi: " + data.codeResult.code);
-        Quagga.stop();
-        document.getElementById('startScan').style.display = 'inline';
-        document.getElementById('stopScan').style.display = 'none';
-    });
-});
+  // === KONFIGURASI ===
+  const ADMIN_USER = "admin";
+  const ADMIN_PASS = "sm2026!";
+  const DB_KEY = 'inventory_items';
 
-document.getElementById('stopScan').addEventListener('click', function() {
-    Quagga.stop();
-    document.getElementById('startScan').style.display = 'inline';
-    document.getElementById('stopScan').style.display = 'none';
-});
+  // === DATA AWAL (dari Excel Anda) ===
+  let items = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+  if (items.length === 0) {
+    items = [
+      { id: '1', name: "Lemari Stainless Steel", type: "Krisbow", qtyLama: 1, qtyBaru: 0, qty: 1, status: "Baik", notes: "", barcode: "SM-2026-001" },
+      { id: '2', name: "Lemari Stainless Steel", type: "Bostinco", qtyLama: 0, qtyBaru: 1, qty: 1, status: "Baik", notes: "", barcode: "SM-2026-002" },
+      { id: '3', name: "Gitar & Sarung", type: "Yamaha C315", qtyLama: 1, qtyBaru: 0, qty: 1, status: "Baik", notes: "", barcode: "SM-2026-003" },
+      { id: '4', name: "Kerincingan", type: "-", qtyLama: 2, qtyBaru: 0, qty: 2, status: "Baik", notes: "", barcode: "SM-2026-004" },
+      { id: '5', name: "Lampu Sorot", type: "-", qtyLama: 1, qtyBaru: 0, qty: 1, status: "Baik", notes: "", barcode: "SM-2026-005" },
+      { id: '6', name: "Seperangkat Stempel", type: "-", qtyLama: 1, qtyBaru: 0, qty: 1, status: "Baik", notes: "", barcode: "SM-2026-006" },
+      { id: '7', name: "White board", type: "Uk 1x 1,5 M", qtyLama: 1, qtyBaru: 2, qty: 3, status: "Baik", notes: "", barcode: "SM-2026-007" },
+      { id: '8', name: "Kantong persembahan", type: "-", qtyLama: 6, qtyBaru: 0, qty: 6, status: "Baik", notes: "", barcode: "SM-2026-008" },
+      { id: '9', name: "Tikar", type: "Plastik lipat 3", qtyLama: 2, qtyBaru: 0, qty: 2, status: "Baik", notes: "", barcode: "SM-2026-009" },
+      { id: '10', name: "Meja + kursi", type: "Kayu 1,2 x 0,5 M", qtyLama: 20, qtyBaru: 0, qty: 20, status: "Baik", notes: "", barcode: "SM-2026-010" },
+      { id: '11', name: "Kipas gantung", type: "Regency", qtyLama: 2, qtyBaru: 0, qty: 2, status: "Baik", notes: "", barcode: "SM-2026-011" },
+      { id: '12', name: "Infocus", type: "Epson", qtyLama: 1, qtyBaru: 0, qty: 1, status: "Rusak", notes: "", barcode: "SM-2026-012" },
+      { id: '13', name: "Kabel Roll", type: "-", qtyLama: 3, qtyBaru: 0, qty: 3, status: "Baik", notes: "", barcode: "SM-2026-013" },
+      { id: '14', name: "Accesoris Drama Natal", type: "Baju2 malaikat", qtyLama: 1, qtyBaru: 0, qty: 1, status: "Baik", notes: "", barcode: "SM-2026-014" },
+      { id: '15', name: "Televisi", type: "Polytron", qtyLama: 1, qtyBaru: 0, qty: 1, status: "Baik", notes: "", barcode: "SM-2026-015" },
+      { id: '16', name: "Screen Infocus", type: "-", qtyLama: 1, qtyBaru: 0, qty: 1, status: "Baik", notes: "", barcode: "SM-2026-016" },
+      { id: '17', name: "Speaker Krisbow", type: "Krisbow", qtyLama: 1, qtyBaru: 0, qty: 1, status: "Baik", notes: "", barcode: "SM-2026-017" },
+      { id: '18', name: "Speaker Polytron", type: "Polytron", qtyLama: 1, qtyBaru: 0, qty: 1, status: "Baik", notes: "", barcode: "SM-2026-018" },
+      { id: '19', name: "Speaker bluetooth", type: "GMC BMS 2206", qtyLama: 1, qtyBaru: 0, qty: 2, status: "Baik", notes: "", barcode: "SM-2026-019" },
+      { id: '20', name: "Speaker bluetooth", type: "GMC BMS 2204", qtyLama: 1, qtyBaru: 0, qty: 1, status: "Rusak", notes: "Perlu perbaikan (suara putus-putus)", barcode: "SM-2026-020" },
+      { id: '21', name: "Pompa Galon Electrik", type: "Miyako", qtyLama: 2, qtyBaru: 0, qty: 2, status: "Baik", notes: "", barcode: "SM-2026-021" },
+      { id: '22', name: "Mixer", type: "Ashley Jaguar 8", qtyLama: 1, qtyBaru: 0, qty: 1, status: "Baik", notes: "", barcode: "SM-2026-022" },
+      { id: '23', name: "Condensor", type: "Behringer C1", qtyLama: 2, qtyBaru: 0, qty: 2, status: "Baik", notes: "", barcode: "SM-2026-023" },
+      { id: '24', name: "Boneka tangan Boy", type: "-", qtyLama: 1, qtyBaru: 0, qty: 1, status: "Baik", notes: "", barcode: "SM-2026-024" },
+      { id: '25', name: "Boneka tangan Girl", type: "-", qtyLama: 1, qtyBaru: 0, qty: 1, status: "Baik", notes: "", barcode: "SM-2026-025" },
+      { id: '26', name: "Topi anak2 merah", type: "-", qtyLama: 12, qtyBaru: 0, qty: 12, status: "Baik", notes: "", barcode: "SM-2026-026" },
+      { id: '27', name: "Lampu natal", type: "-", qtyLama: 6, qtyBaru: 0, qty: 6, status: "Baik", notes: "", barcode: "SM-2026-027" }
+    ];
+    localStorage.setItem(DB_KEY, JSON.stringify(items));
+  }
+
+  // === FUNGSI UTAMA ===
+  function showPage(pageId) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(pageId).classList.add('active');
+    if (pageId === 'inventory-page') renderInventory();
+    if (pageId === 'report-page') renderReport();
+  }
+
+  function login() {
+    const user = document.getElementById('username').value.trim();
+    const pass = document.getElementById('password').value;
+    const errorDiv = document.getElementById('login-error');
+    if (user === ADMIN_USER && pass === ADMIN_PASS) {
+      localStorage.setItem('user', user);
+      document.getElementById('user-display').textContent = user;
+      showPage('dashboard-page');
+      errorDiv.style.display = 'none';
+    } else {
+      errorDiv.textContent = "Username atau password salah!";
+      errorDiv.style.display = 'block';
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem('user');
+    document.getElementById('username').value = '';
+    document.getElementById('password').value = '';
+    showPage('login-page');
+  }
+
+  function renderInventory() {
+    const tbody = document.getElementById('inventory-body');
+    tbody.innerHTML = '';
+    items.forEach(item => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${item.name}</td>
+        <td>${item.type || '-'}</td>
+        <td>${item.qtyLama || ''}</td>
+        <td>${item.qtyBaru || ''}</td>
+        <td>${item.qty} buah</td>
+        <td>${item.status}</td>
+        <td>${item.barcode}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function saveItem() {
+    const name = document.getElementById('name').value.trim();
+    if (!name) return alert('Nama barang wajib diisi!');
+    
+    const qtyLama = parseInt(document.getElementById('qtyLama').value) || 0;
+    const qtyBaru = parseInt(document.getElementById('qtyBaru').value) || 0;
+    const newItem = {
+      id: Date.now().toString(),
+      name,
+      type: document.getElementById('type').value.trim(),
+      qtyLama,
+      qtyBaru,
+      qty: qtyLama + qtyBaru,
+      status: document.getElementById('status').value,
+      notes: document.getElementById('notes').value.trim(),
+      barcode: `SM-2026-${String(Date.now()).slice(-4)}`
+    };
+    items.push(newItem);
+    localStorage.setItem(DB_KEY, JSON.stringify(items));
+    alert('Barang berhasil disimpan!');
+    showPage('inventory-page');
+  }
+
+  function renderReport() {
+    const tbody = document.getElementById('report-body');
+    tbody.innerHTML = '';
+    items.forEach((item, idx) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${idx + 1}</td>
+        <td>${item.name}</td>
+        <td>${item.type || '-'}</td>
+        <td>${item.qtyLama || ''}</td>
+        <td>${item.qtyBaru || ''}</td>
+        <td>${item.qty} buah</td>
+        <td>${item.status}</td>
+        <td>${item.notes || ''}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function generatePDF() {
+    const content = document.getElementById('report-content');
+    content.style.display = 'block';
+    html2canvas(content).then(canvas => {
+      const imgData = canvas.toDataURL('image/png');
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const width = pdf.internal.pageSize.getWidth();
+      const height = (canvas.height * width) / canvas.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, width, Math.min(height, 297));
+      pdf.save('Laporan_Inventaris_SM_2026.pdf');
+      content.style.display = 'none';
+    });
+  }
+
+  function initScanner() {
+    const container = document.getElementById('scanner-container');
+    container.innerHTML = '<video autoplay playsinline style="width:100%;height:100%;object-fit:cover;"></video>';
+    document.getElementById('scan-result').innerHTML = '';
+
+    Quagga.init({
+      inputStream: {
+        name: "Live",
+        type: "LiveStream",
+        target: container.querySelector('video'),
+        constraints: { facingMode: "environment" }
+      },
+      decoder: {
+        readers: ["code_128_reader", "ean_reader", "code_39_reader", "upc_reader"]
+      }
+    }, function(err) {
+      if (err) {
+        document.getElementById('scan-result').innerHTML = 
+          "<p style='color:red;'>❌ Gagal mengakses kamera. Pastikan dibuka via HTTPS atau localhost.</p>";
+        return;
+      }
+      Quagga.start();
+    });
+
+    Quagga.onDetected(function(data) {
+      const barcode = data.codeResult.code;
+      const item = items.find(i => i.barcode === barcode);
+      Quagga.stop();
+      const resultDiv = document.getElementById('scan-result');
+      if (item) {
+        resultDiv.innerHTML = `
+          <h3>✅ Barang Ditemukan:</h3>
+          <p><strong>Nama:</strong> ${item.name}</p>
+          <p><strong>Type:</strong> ${item.type || '-'}</p>
+          <p><strong>Qty:</strong> ${item.qty} buah</p>
+          <p><strong>Status:</strong> ${item.status}</p>
+          ${item.notes ? `<p><strong>Catatan:</strong> ${item.notes}</p>` : ''}
+          <button onclick="initScanner()">Scan Lagi</button>
+        `;
+      } else {
+        resultDiv.innerHTML = `<p style='color:orange;'>⚠️ Barcode tidak ditemukan: ${barcode}</p>`;
+      }
+    });
+  }
+
+  // Cek login saat halaman dimuat
+  if (localStorage.getItem('user')) {
+    document.getElementById('user-display').textContent = localStorage.getItem('user');
+    showPage('dashboard-page');
+  }
 </script>
+
+</body>
+</html>
