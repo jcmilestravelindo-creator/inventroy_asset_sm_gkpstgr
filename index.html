@@ -1,1726 +1,1599 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventory Sekolah Minggu</title>
-    
-    <!-- QuaggaJS untuk Barcode Scanner -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
-    <!-- jQuery untuk manipulasi DOM -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- PapaParse untuk parsing CSV -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-    <!-- QR Code Generator -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            overflow: hidden;
-        }
-        
-        .page {
-            padding: 30px;
-            display: none;
-        }
-        
-        .page h2 {
-            color: #333;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        
-        /* Login Page */
-        #loginPage {
-            display: block;
-            text-align: center;
-        }
-        
-        #loginPage h2 {
-            margin-bottom: 30px;
-            color: #667eea;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-            text-align: left;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #555;
-            font-weight: 600;
-        }
-        
-        .form-group input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s;
-        }
-        
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        
-        button {
-            width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-        
-        /* Dashboard */
-        .dashboard-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-        }
-        
-        .stat-card h3 {
-            font-size: 36px;
-            margin: 10px 0;
-        }
-        
-        .stat-card p {
-            opacity: 0.9;
-        }
-        
-        .dashboard-menu {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 30px;
-        }
-        
-        .menu-btn {
-            padding: 20px;
-            background: white;
-            color: #667eea;
-            border: 2px solid #667eea;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            width: auto;
-        }
-        
-        .menu-btn:hover {
-            background: #667eea;
-            color: white;
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-        }
-        
-        /* Table */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        
-        th {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            font-weight: 600;
-        }
-        
-        tr:hover {
-            background: #f5f5f5;
-        }
-        
-        /* Form */
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-        
-        .form-group-inline {
-            margin-bottom: 15px;
-            text-align: left;
-        }
-        
-        .form-group-inline label {
-            display: block;
-            margin-bottom: 8px;
-            color: #555;
-            font-weight: 600;
-        }
-        
-        .form-group-inline input,
-        .form-group-inline select,
-        .form-group-inline textarea {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 14px;
-        }
-        
-        .form-group-inline textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-        
-        /* Status Radio */
-        .radio-group {
-            display: flex;
-            gap: 15px;
-            margin-top: 8px;
-        }
-        
-        .radio-group label {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            cursor: pointer;
-            font-weight: normal;
-        }
-        
-        .radio-group input[type="radio"] {
-            width: auto;
-        }
-        
-        /* Action Buttons */
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-            justify-content: center;
-        }
-        
-        .btn-secondary {
-            background: #6c757d;
-            width: auto;
-            padding: 10px 20px;
-        }
-        
-        .btn-secondary:hover {
-            background: #5a6268;
-        }
-        
-        .btn-success {
-            background: #28a745;
-            width: auto;
-            padding: 10px 20px;
-        }
-        
-        .btn-success:hover {
-            background: #218838;
-        }
-        
-        .btn-danger {
-            background: #dc3545;
-            width: auto;
-            padding: 10px 20px;
-        }
-        
-        .btn-danger:hover {
-            background: #c82333;
-        }
-        
-        .btn-info {
-            background: #17a2b8;
-            width: auto;
-            padding: 10px 20px;
-        }
-        
-        .btn-info:hover {
-            background: #138496;
-        }
-        
-        .btn-warning {
-            background: #ffc107;
-            color: #333;
-            width: auto;
-            padding: 10px 20px;
-        }
-        
-        .btn-warning:hover {
-            background: #e0a800;
-        }
-        
-        /* Viewport untuk Scanner */
-        .viewport {
-            position: relative;
-            overflow: hidden;
-            background: #000;
-            border: 3px solid #4CAF50;
-            border-radius: 10px;
-            margin: 20px auto;
-            max-width: 640px;
-            width: 100%;
-        }
-        
-        .viewport video {
-            display: block;
-            width: 100%;
-            height: auto;
-        }
-        
-        .viewport canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-        
-        /* Scanner line animation */
-        .viewport::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background: rgba(76, 175, 80, 0.8);
-            box-shadow: 0 0 10px rgba(76, 175, 80, 0.8);
-            animation: scanline 2s infinite linear;
-            z-index: 10;
-        }
-        
-        @keyframes scanline {
-            0% { top: 0; }
-            100% { top: 100%; }
-        }
-        
-        /* Scan Status */
-        #scanStatus {
-            text-align: center;
-            margin: 15px;
-            padding: 10px;
-            background: #f0f0f0;
-            border-radius: 5px;
-            transition: all 0.3s;
-        }
-        
-        /* Scan Result */
-        #scanResult {
-            margin: 20px;
-            padding: 20px;
-            background: #e8f5e9;
-            border-radius: 10px;
-            border-left: 5px solid #4CAF50;
-        }
-        
-        #resultDetails {
-            margin-top: 15px;
-            line-height: 1.8;
-        }
-        
-        #resultDetails p {
-            margin: 8px 0;
-        }
-        
-        #resultDetails strong {
-            color: #333;
-        }
-        
-        /* QR Code Container */
-        #qrcodeContainer {
-            text-align: center;
-            margin-top: 10px;
-            padding: 15px;
-            background: #f9f9f9;
-            border-radius: 8px;
-            border: 2px dashed #667eea;
-        }
-        
-        #qrcodeContainer canvas,
-        #qrcodeContainer img {
-            margin: 0 auto;
-            display: block;
-        }
-        
-        /* Scan Control Buttons */
-        .scan-controls {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin: 20px 0;
-        }
-        
-        #startScan, #stopScan {
-            width: auto;
-            padding: 12px 24px;
-            font-size: 16px;
-        }
-        
-        #stopScan {
-            background: #f44336;
-        }
-        
-        #stopScan:hover {
-            background: #d32f2f;
-        }
-        
-        /* Manual Input */
-        .manual-input-group {
-            margin: 20px;
-            padding: 15px;
-            background: #e3f2fd;
-            border-radius: 5px;
-            text-align: center;
-        }
-        
-        #manualBarcode {
-            padding: 10px;
-            width: 60%;
-            border: 2px solid #2196F3;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-        
-        .manual-search-btn {
-            padding: 10px 15px;
-            background: #2196F3;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            width: auto;
-            margin-left: 10px;
-        }
-        
-        .manual-search-btn:hover {
-            background: #0d8aee;
-        }
-        
-        /* Upload Section */
-        .upload-section {
-            background: #e3f2fd;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
-            text-align: center;
-        }
-        
-        .upload-area {
-            border: 3px dashed #2196F3;
-            border-radius: 10px;
-            padding: 40px 20px;
-            margin: 20px 0;
-            background: white;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .upload-area:hover {
-            background: #f5f5f5;
-            border-color: #667eea;
-        }
-        
-        .upload-area i {
-            font-size: 48px;
-            color: #2196F3;
-            margin-bottom: 10px;
-        }
-        
-        .upload-area p {
-            color: #666;
-            margin-top: 10px;
-        }
-        
-        #fileInput {
-            display: none;
-        }
-        
-        .file-info {
-            margin-top: 15px;
-            padding: 10px;
-            background: white;
-            border-radius: 5px;
-            text-align: left;
-        }
-        
-        .preview-table {
-            width: 100%;
-            margin-top: 20px;
-            border-collapse: collapse;
-        }
-        
-        .preview-table th,
-        .preview-table td {
-            padding: 8px;
-            border: 1px solid #ddd;
-            text-align: left;
-        }
-        
-        .preview-table th {
-            background: #667eea;
-            color: white;
-        }
-        
-        .preview-table tr:nth-child(even) {
-            background: #f9f9f9;
-        }
-        
-        .import-summary {
-            background: #e8f5e9;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 15px 0;
-            text-align: left;
-        }
-        
-        .import-summary strong {
-            color: #2e7d32;
-        }
-        
-        /* Print Label Styles */
-        @media print {
-            .container, .page {
-                padding: 0;
-                margin: 0;
-            }
-            .action-buttons, .dashboard-menu, button {
-                display: none !important;
-            }
-        }
-        
-        /* Responsive */
-        @media (max-width: 768px) {
-            .container {
-                padding: 10px;
-            }
-            
-            .page {
-                padding: 20px;
-            }
-            
-            .dashboard-stats,
-            .dashboard-menu,
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            #manualBarcode {
-                width: 100%;
-                margin-bottom: 10px;
-            }
-            
-            .manual-search-btn {
-                width: 100%;
-                margin-left: 0;
-            }
-            
-            .action-buttons {
-                flex-direction: column;
-            }
-            
-            .action-buttons button {
-                width: 100% !important;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventory Sekolah Minggu</title>
+<!-- QuaggaJS untuk Barcode Scanner -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+<!-- jQuery untuk manipulasi DOM -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- PapaParse untuk parsing CSV -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+<!-- QR Code Generator -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+* {
+margin: 0;
+padding: 0;
+box-sizing: border-box;
+}
+body {
+font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+min-height: 100vh;
+padding: 20px;
+}
+.container {
+max-width: 1200px;
+margin: 0 auto;
+background: white;
+border-radius: 15px;
+box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+overflow: hidden;
+}
+.page {
+padding: 30px;
+display: none;
+}
+.page h2 {
+color: #333;
+margin-bottom: 20px;
+text-align: center;
+}
+/* Login Page */
+#loginPage {
+display: block;
+text-align: center;
+}
+#loginPage h2 {
+margin-bottom: 30px;
+color: #667eea;
+}
+.form-group {
+margin-bottom: 20px;
+text-align: left;
+}
+.form-group label {
+display: block;
+margin-bottom: 8px;
+color: #555;
+font-weight: 600;
+}
+.form-group input {
+width: 100%;
+padding: 12px;
+border: 2px solid #ddd;
+border-radius: 8px;
+font-size: 16px;
+transition: border-color 0.3s;
+}
+.form-group input:focus {
+outline: none;
+border-color: #667eea;
+}
+button {
+width: 100%;
+padding: 12px;
+background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+color: white;
+border: none;
+border-radius: 8px;
+font-size: 16px;
+font-weight: 600;
+cursor: pointer;
+transition: transform 0.2s, box-shadow 0.2s;
+}
+button:hover {
+transform: translateY(-2px);
+box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+/* Dashboard */
+.dashboard-stats {
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+gap: 20px;
+margin-bottom: 30px;
+}
+.stat-card {
+background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+color: white;
+padding: 20px;
+border-radius: 10px;
+text-align: center;
+}
+.stat-card h3 {
+font-size: 36px;
+margin: 10px 0;
+}
+.stat-card p {
+opacity: 0.9;
+}
+.dashboard-menu {
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+gap: 15px;
+margin-top: 30px;
+}
+.menu-btn {
+padding: 20px;
+background: white;
+color: #667eea;
+border: 2px solid #667eea;
+border-radius: 10px;
+font-size: 16px;
+font-weight: 600;
+cursor: pointer;
+transition: all 0.3s;
+width: auto;
+}
+.menu-btn:hover {
+background: #667eea;
+color: white;
+transform: translateY(-3px);
+box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+/* Table */
+table {
+width: 100%;
+border-collapse: collapse;
+margin-top: 20px;
+background: white;
+border-radius: 10px;
+overflow: hidden;
+}
+th, td {
+padding: 12px;
+text-align: left;
+border-bottom: 1px solid #ddd;
+}
+th {
+background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+color: white;
+font-weight: 600;
+}
+tr:hover {
+background: #f5f5f5;
+}
+/* Form */
+.form-grid {
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+gap: 20px;
+margin-top: 20px;
+}
+.form-group-inline {
+margin-bottom: 15px;
+text-align: left;
+}
+.form-group-inline label {
+display: block;
+margin-bottom: 8px;
+color: #555;
+font-weight: 600;
+}
+.form-group-inline input,
+.form-group-inline select,
+.form-group-inline textarea {
+width: 100%;
+padding: 10px;
+border: 2px solid #ddd;
+border-radius: 8px;
+font-size: 14px;
+}
+.form-group-inline textarea {
+resize: vertical;
+min-height: 80px;
+}
+/* Status Radio */
+.radio-group {
+display: flex;
+gap: 15px;
+margin-top: 8px;
+}
+.radio-group label {
+display: flex;
+align-items: center;
+gap: 5px;
+cursor: pointer;
+font-weight: normal;
+}
+.radio-group input[type="radio"] {
+width: auto;
+}
+/* Action Buttons */
+.action-buttons {
+display: flex;
+gap: 10px;
+margin-top: 20px;
+justify-content: center;
+}
+.btn-secondary {
+background: #6c757d;
+width: auto;
+padding: 10px 20px;
+}
+.btn-secondary:hover {
+background: #5a6268;
+}
+.btn-success {
+background: #28a745;
+width: auto;
+padding: 10px 20px;
+}
+.btn-success:hover {
+background: #218838;
+}
+.btn-danger {
+background: #dc3545;
+width: auto;
+padding: 10px 20px;
+}
+.btn-danger:hover {
+background: #c82333;
+}
+.btn-info {
+background: #17a2b8;
+width: auto;
+padding: 10px 20px;
+}
+.btn-info:hover {
+background: #138496;
+}
+.btn-warning {
+background: #ffc107;
+color: #333;
+width: auto;
+padding: 10px 20px;
+}
+.btn-warning:hover {
+background: #e0a800;
+}
+/* Viewport untuk Scanner */
+.viewport {
+position: relative;
+overflow: hidden;
+background: #000;
+border: 3px solid #4CAF50;
+border-radius: 10px;
+margin: 20px auto;
+max-width: 640px;
+width: 100%;
+}
+.viewport video {
+display: block;
+width: 100%;
+height: auto;
+}
+.viewport canvas {
+position: absolute;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+}
+/* Scanner line animation */
+.viewport::after {
+content: '';
+position: absolute;
+top: 50%;
+left: 0;
+width: 100%;
+height: 3px;
+background: rgba(76, 175, 80, 0.8);
+box-shadow: 0 0 10px rgba(76, 175, 80, 0.8);
+animation: scanline 2s infinite linear;
+z-index: 10;
+}
+@keyframes scanline {
+0% { top: 0; }
+100% { top: 100%; }
+}
+/* Scan Status */
+#scanStatus {
+text-align: center;
+margin: 15px;
+padding: 10px;
+background: #f0f0f0;
+border-radius: 5px;
+transition: all 0.3s;
+}
+/* Scan Result */
+#scanResult {
+margin: 20px;
+padding: 20px;
+background: #e8f5e9;
+border-radius: 10px;
+border-left: 5px solid #4CAF50;
+}
+#resultDetails {
+margin-top: 15px;
+line-height: 1.8;
+}
+#resultDetails p {
+margin: 8px 0;
+}
+#resultDetails strong {
+color: #333;
+}
+/* QR Code Container */
+#qrcodeContainer {
+text-align: center;
+margin-top: 10px;
+padding: 15px;
+background: #f9f9f9;
+border-radius: 8px;
+border: 2px dashed #667eea;
+}
+#qrcodeContainer canvas,
+#qrcodeContainer img {
+margin: 0 auto;
+display: block;
+}
+/* Scan Control Buttons */
+.scan-controls {
+display: flex;
+gap: 10px;
+justify-content: center;
+margin: 20px 0;
+}
+#startScan, #stopScan {
+width: auto;
+padding: 12px 24px;
+font-size: 16px;
+}
+#stopScan {
+background: #f44336;
+}
+#stopScan:hover {
+background: #d32f2f;
+}
+/* Manual Input */
+.manual-input-group {
+margin: 20px;
+padding: 15px;
+background: #e3f2fd;
+border-radius: 5px;
+text-align: center;
+}
+#manualBarcode {
+padding: 10px;
+width: 60%;
+border: 2px solid #2196F3;
+border-radius: 5px;
+font-size: 14px;
+}
+.manual-search-btn {
+padding: 10px 15px;
+background: #2196F3;
+color: white;
+border: none;
+border-radius: 5px;
+cursor: pointer;
+font-size: 14px;
+width: auto;
+margin-left: 10px;
+}
+.manual-search-btn:hover {
+background: #0d8aee;
+}
+/* Upload Section */
+.upload-section {
+background: #e3f2fd;
+padding: 20px;
+border-radius: 10px;
+margin: 20px 0;
+text-align: center;
+}
+.upload-area {
+border: 3px dashed #2196F3;
+border-radius: 10px;
+padding: 40px 20px;
+margin: 20px 0;
+background: white;
+cursor: pointer;
+transition: all 0.3s;
+}
+.upload-area:hover {
+background: #f5f5f5;
+border-color: #667eea;
+}
+.upload-area i {
+font-size: 48px;
+color: #2196F3;
+margin-bottom: 10px;
+}
+.upload-area p {
+color: #666;
+margin-top: 10px;
+}
+#fileInput {
+display: none;
+}
+.file-info {
+margin-top: 15px;
+padding: 10px;
+background: white;
+border-radius: 5px;
+text-align: left;
+}
+.preview-table {
+width: 100%;
+margin-top: 20px;
+border-collapse: collapse;
+}
+.preview-table th,
+.preview-table td {
+padding: 8px;
+border: 1px solid #ddd;
+text-align: left;
+}
+.preview-table th {
+background: #667eea;
+color: white;
+}
+.preview-table tr:nth-child(even) {
+background: #f9f9f9;
+}
+.import-summary {
+background: #e8f5e9;
+padding: 15px;
+border-radius: 5px;
+margin: 15px 0;
+text-align: left;
+}
+.import-summary strong {
+color: #2e7d32;
+}
+/* Responsive */
+@media (max-width: 768px) {
+.container {
+padding: 10px;
+}
+.page {
+padding: 20px;
+}
+.dashboard-stats,
+.dashboard-menu,
+.form-grid {
+grid-template-columns: 1fr;
+}
+#manualBarcode {
+width: 100%;
+margin-bottom: 10px;
+}
+.manual-search-btn {
+width: 100%;
+margin-left: 0;
+}
+.action-buttons {
+flex-direction: column;
+}
+.action-buttons button {
+width: 100% !important;
+}
+}
+</style>
 </head>
 <body>
-    <div class="container">
-        
-        <!-- 🔐 Login Page -->
-        <div id="loginPage" class="page">
-            <h2>🔐 Login Inventory</h2>
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" placeholder="Masukkan username">
-            </div>
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" placeholder="Masukkan password">
-            </div>
-            <button onclick="login()">Masuk</button>
-        </div>
-        
-        <!-- 🏠 Dashboard Page -->
-        <div id="dashboardPage" class="page">
-            <h2>🏠 Dashboard Inventaris</h2>
-            <p style="text-align: center; margin-bottom: 20px; font-size: 18px;">Selamat datang, <span id="userName">Admin</span>!</p>
-            
-            <div class="dashboard-stats">
-                <div class="stat-card">
-                    <p>Total Barang</p>
-                    <h3 id="totalItems">0</h3>
-                </div>
-                <div class="stat-card">
-                    <p>Barang Baik</p>
-                    <h3 id="goodItems">0</h3>
-                </div>
-                <div class="stat-card">
-                    <p>Perlu Perbaikan</p>
-                    <h3 id="repairItems">0</h3>
-                </div>
-                <div class="stat-card">
-                    <p>Barang Rusak</p>
-                    <h3 id="brokenItems">0</h3>
-                </div>
-            </div>
-            
-            <div class="upload-section">
-                <h3>📤 Upload Data Inventory (CSV)</h3>
-                <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-                    <p><strong>Klik di sini</strong> atau <strong>drag & drop</strong> file CSV Anda</p>
-                    <p style="font-size: 14px; color: #666; margin-top: 10px;">Format file: .csv</p>
-                    <input type="file" id="fileInput" accept=".csv" onchange="handleFileSelect(event)">
-                </div>
-                <div id="fileInfo" style="display: none;" class="file-info"></div>
-                <div id="previewContainer" style="display: none; margin-top: 20px;">
-                    <h4>📋 Preview Data:</h4>
-                    <div style="max-height: 300px; overflow-y: auto; margin-top: 10px;">
-                        <table class="preview-table" id="previewTable">
-                            <thead>
-                                <tr>
-                                    <th>NO</th>
-                                    <th>NAMA</th>
-                                    <th>TYPE</th>
-                                    <th>LAMA</th>
-                                    <th>BARU</th>
-                                    <th>QTY</th>
-                                    <th>STATUS</th>
-                                    <th>CATATAN</th>
-                                </tr>
-                            </thead>
-                            <tbody id="previewTableBody"></tbody>
-                        </table>
-                    </div>
-                    <div id="importSummary" class="import-summary" style="display: none;"></div>
-                    <div class="action-buttons" style="margin-top: 15px;">
-                        <button class="btn-success" onclick="importData()" style="flex: 1;">✅ Import Data</button>
-                        <button class="btn-secondary" onclick="cancelImport()" style="flex: 1;">❌ Batal</button>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="dashboard-menu">
-                <button class="menu-btn" onclick="showPage('inventoryPage')">📋 Daftar Inventaris</button>
-                <button class="menu-btn" onclick="showPage('addPage')">➕ Tambah Barang</button>
-                <button class="menu-btn" onclick="showPage('scanPage')">📷 Scan Barcode</button>
-                <button class="menu-btn" onclick="showPage('reportPage')">📊 Laporan</button>
-                <button class="menu-btn" onclick="logout()">🚪 Logout</button>
-            </div>
-        </div>
-        
-        <!-- 📋 Inventory Page -->
-        <div id="inventoryPage" class="page">
-            <h2>📋 Daftar Inventaris</h2>
-            <div class="action-buttons">
-                <button class="menu-btn" onclick="showPage('addPage')" style="flex:1;">➕ Tambah Barang</button>
-                <button class="menu-btn" onclick="showPage('scanPage')" style="flex:1;">📷 Scan Barcode</button>
-                <button class="menu-btn" onclick="document.getElementById('inventoryFileInput').click()" style="flex:1; background: #ffc107; color: #333;">📤 Upload CSV</button>
-                <button class="menu-btn" onclick="showPage('dashboardPage')" style="flex:1;">⬅️ Kembali</button>
-                <input type="file" id="inventoryFileInput" accept=".csv" onchange="handleFileSelect(event)" style="display: none;">
-            </div>
-            
-            <table>
-                <thead>
-                    <tr>
-                        <th>No</th>
-                        <th>Nama</th>
-                        <th>Type</th>
-                        <th>Qty Lama</th>
-                        <th>Qty Baru</th>
-                        <th>Qty Total</th>
-                        <th>Status</th>
-                        <th>Barcode</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="inventoryTableBody">
-                    <!-- Data akan diisi oleh JavaScript -->
-                </tbody>
-            </table>
-        </div>
-        
-        <!-- ➕ Add Page -->
-        <div id="addPage" class="page">
-            <h2>➕ Tambah Barang</h2>
-            
-            <div class="form-grid">
-                <div class="form-group-inline">
-                    <label for="itemName">Nama Barang *</label>
-                    <input type="text" id="itemName" placeholder="Masukkan nama barang" required>
-                </div>
-                <div class="form-group-inline">
-                    <label for="itemType">Type</label>
-                    <input type="text" id="itemType" placeholder="Masukkan type barang">
-                </div>
-                <div class="form-group-inline">
-                    <label for="qtyLama">Qty Lama</label>
-                    <input type="number" id="qtyLama" placeholder="Jumlah lama" min="0" value="0">
-                </div>
-                <div class="form-group-inline">
-                    <label for="qtyBaru">Qty Baru</label>
-                    <input type="number" id="qtyBaru" placeholder="Jumlah baru" min="0" value="0">
-                </div>
-                <div class="form-group-inline" style="grid-column: span 2;">
-                    <label>Status</label>
-                    <div class="radio-group">
-                        <label><input type="radio" name="status" value="Baik" checked> Baik</label>
-                        <label><input type="radio" name="status" value="Rusak"> Rusak</label>
-                        <label><input type="radio" name="status" value="Perlu Perbaikan"> Perlu Perbaikan</label>
-                    </div>
-                </div>
-                <div class="form-group-inline" style="grid-column: span 2;">
-                    <label for="itemNote">Catatan</label>
-                    <textarea id="itemNote" placeholder="Masukkan catatan (opsional)"></textarea>
-                </div>
-                <div class="form-group-inline" style="grid-column: span 2;">
-                    <label for="itemBarcode">Barcode</label>
-                    <input type="text" id="itemBarcode" placeholder="Scan atau ketik barcode (otomatis jika kosong)">
-                </div>
-                <div class="form-group-inline" style="grid-column: span 2;">
-                    <label>QR Code Preview</label>
-                    <div id="qrcodeContainer"></div>
-                    <button type="button" class="btn-info" style="width: auto; margin-top: 10px;" onclick="generateQR()">
-                        🖨️ Generate QR Code
-                    </button>
-                </div>
-            </div>
-            
-            <div class="action-buttons">
-                <button onclick="saveItem()">💾 Simpan</button>
-                <button class="btn-secondary" onclick="showPage('inventoryPage')">⬅️ Kembali</button>
-            </div>
-        </div>
-        
-        <!-- 📷 Scan Page -->
-        <div id="scanPage" class="page">
-            <h2>📷 Scan Barcode</h2>
-            
-            <!-- Preview kamera -->
-            <div id="interactive" class="viewport">
-                <video></video>
-            </div>
-            
-            <!-- Status & Hasil -->
-            <div id="scanStatus">
-                Tekan tombol di bawah untuk mulai scan
-            </div>
-            
-            <!-- Tombol Kontrol -->
-            <div class="scan-controls">
-                <button id="startScan">▶️ Mulai Scan</button>
-                <button id="stopScan" style="display: none;">⏹️ Stop Scan</button>
-            </div>
-            
-            <!-- Input Manual (Fallback) -->
-            <div class="manual-input-group">
-                <h4>Atau Masukkan Barcode Manual:</h4>
-                <input type="text" id="manualBarcode" placeholder="Ketik barcode di sini...">
-                <button class="manual-search-btn" onclick="manualSearch()">🔍 Cari</button>
-            </div>
-            
-            <!-- Hasil Pencarian -->
-            <div id="scanResult" style="display: none;">
-                <h3>✅ Hasil Pencarian:</h3>
-                <div id="resultDetails"></div>
-            </div>
-            
-            <div class="action-buttons">
-                <button class="btn-secondary" onclick="showPage('inventoryPage')">⬅️ Kembali</button>
-            </div>
-        </div>
-        
-        <!-- 📊 Report Page -->
-        <div id="reportPage" class="page">
-            <h2>📊 Laporan Inventaris</h2>
-            
-            <div style="text-align: center; margin-bottom: 30px;">
-                <h3>DAFTAR INVENTARIS SIE SEKOLAH MINGGU</h3>
-                <p><strong>TAHUN 2026</strong></p>
-            </div>
-            
-            <table>
-                <thead>
-                    <tr>
-                        <th>NO</th>
-                        <th>NAMA</th>
-                        <th>TYPE</th>
-                        <th>LAMA</th>
-                        <th>BARU</th>
-                        <th>QTY</th>
-                        <th>STATUS</th>
-                        <th>CATATAN</th>
-                    </tr>
-                </thead>
-                <tbody id="reportTableBody">
-                    <!-- Data akan diisi oleh JavaScript -->
-                </tbody>
-            </table>
-            
-            <div style="margin-top: 40px; text-align: right;">
-                <p>Tangerang, 31 Desember 2025</p>
-                <p><strong>St. Dameria Saragih</strong><br>Ketua SM</p>
-                <p style="margin-top: 40px;"><strong>Sanny Girsang</strong><br>Sekretaris SM</p>
-            </div>
-            
-            <div class="action-buttons">
-                <button class="btn-info" onclick="downloadPDF()">📥 Download PDF</button>
-                <button class="btn-secondary" onclick="showPage('dashboardPage')">⬅️ Kembali</button>
-            </div>
-        </div>
-        
-    </div>
-    
-    <script>
-        // ============================================
-        // GLOBAL VARIABLES
-        // ============================================
-        let currentUser = null;
-        let quaggaInitialized = false;
-        let currentBarcode = '';
-        let inventoryData = JSON.parse(localStorage.getItem('inventoryData')) || [];
-        let csvDataPreview = []; // Untuk menyimpan preview data CSV
-        
-        // ============================================
-        // LOGIN & LOGOUT FUNCTIONS
-        // ============================================
-        function login() {
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            
-            // Simple validation (you can enhance this)
-            if (!username || !password) {
-                alert('⚠️ Username dan password harus diisi!');
-                return;
-            }
-            
-            // For demo, accept any credentials
-            currentUser = username;
-            document.getElementById('userName').textContent = username;
-            updateDashboard();
-            showPage('dashboardPage');
-        }
-        
-        function logout() {
-            currentUser = null;
-            showPage('loginPage');
-            document.getElementById('username').value = '';
-            document.getElementById('password').value = '';
-        }
-        
-        // ============================================
-        // PAGE NAVIGATION
-        // ============================================
-        function showPage(pageId) {
-            // Hide all pages
-            document.querySelectorAll('.page').forEach(page => {
-                page.style.display = 'none';
-            });
-            
-            // Show selected page
-            document.getElementById(pageId).style.display = 'block';
-            
-            // Stop scanner if leaving scan page
-            if (pageId !== 'scanPage' && quaggaInitialized) {
-                stopScanner();
-            }
-            
-            // Clear QR code container when leaving add page
-            if (pageId !== 'addPage') {
-                document.getElementById('qrcodeContainer').innerHTML = '';
-            }
-            
-            // Refresh data if needed
-            if (pageId === 'inventoryPage') {
-                renderInventoryTable();
-            } else if (pageId === 'reportPage') {
-                renderReportTable();
-            }
-        }
-        
-        // ============================================
-        // QR CODE FUNCTIONS
-        // ============================================
-        function generateQR() {
-            const name = document.getElementById('itemName').value.trim();
-            const type = document.getElementById('itemType').value.trim();
-            let barcode = document.getElementById('itemBarcode').value.trim();
-            
-            // Validasi nama barang
-            if (!name) {
-                alert('⚠️ Nama barang harus diisi terlebih dahulu!');
-                return;
-            }
-            
-            // Generate barcode otomatis jika kosong
-            if (!barcode) {
-                const prefix = name.substring(0, 2).toUpperCase();
-                barcode = prefix + Date.now().toString().slice(-6) + Math.floor(Math.random() * 100);
-                document.getElementById('itemBarcode').value = barcode;
-                alert('ℹ️ Barcode otomatis digenerate: ' + barcode);
-            }
-            
-            // Data untuk QR code (format JSON string)
-            const qrData = JSON.stringify({
-                id: window.editingItemId || Date.now(),
-                nama: name,
-                type: type || '-',
-                barcode: barcode,
-                timestamp: new Date().toISOString()
-            });
-            
-            // Clear container
-            const container = document.getElementById('qrcodeContainer');
-            container.innerHTML = '';
-            
-            // Generate QR code
-            new QRCode(container, {
-                text: qrData,
-                width: 160,
-                height: 160,
-                correctLevel: QRCode.CorrectLevel.H
-            });
-            
-            // Tampilkan info
-            container.innerHTML += `<p style="margin-top: 10px; font-size: 12px; color: #666;">Barcode: ${barcode}</p>`;
-            
-            alert('✅ QR Code berhasil digenerate!\n\nBarcode: ' + barcode + '\n\nScan QR code ini untuk melihat detail barang.');
-        }
-        
-        function showQRForItem(item) {
-            const resultDiv = document.getElementById('resultDetails');
-            
-            // Buat container untuk QR code
-            const qrContainer = document.createElement('div');
-            qrContainer.id = 'scanQRContainer';
-            qrContainer.style.marginTop = '20px';
-            qrContainer.style.textAlign = 'center';
-            qrContainer.style.padding = '15px';
-            qrContainer.style.background = '#f9f9f9';
-            qrContainer.style.borderRadius = '8px';
-            qrContainer.style.border = '2px solid #4CAF50';
-            
-            // Data QR
-            const qrData = JSON.stringify({
-                id: item.id,
-                nama: item.nama,
-                type: item.type || '-',
-                qty: item.qtyTotal,
-                status: item.status,
-                barcode: item.barcode,
-                catatan: item.catatan || '-'
-            });
-            
-            // Tambahkan container ke result
-            resultDiv.appendChild(qrContainer);
-            
-            // Generate QR code
-            new QRCode(qrContainer, {
-                text: qrData,
-                width: 180,
-                height: 180,
-                correctLevel: QRCode.CorrectLevel.H
-            });
-            
-            // Tambahkan label
-            qrContainer.innerHTML += `<p style="margin-top: 10px; font-size: 12px; color: #666;">Scan untuk info lengkap</p>`;
-        }
-        
-        function printBarcodeLabel(id) {
-            const item = inventoryData.find(i => i.id === id);
-            if (!item) return;
-            
-            // Generate barcode jika belum ada
-            if (item.barcode === 'N/A' || !item.barcode) {
-                const prefix = item.nama.substring(0, 2).toUpperCase();
-                item.barcode = prefix + Date.now().toString().slice(-6) + Math.floor(Math.random() * 100);
-                localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
-            }
-            
-            // Buat window baru untuk print
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Label Barcode - ${item.nama}</title>
-                    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-                    <style>
-                        body { 
-                            font-family: Arial, sans-serif; 
-                            text-align: center; 
-                            padding: 20px; 
-                            margin: 0;
-                            background: white;
-                        }
-                        .label-container {
-                            width: 300px;
-                            margin: 0 auto;
-                            border: 2px solid #000;
-                            padding: 15px;
-                            page-break-after: always;
-                        }
-                        .item-name {
-                            font-size: 18px;
-                            font-weight: bold;
-                            margin: 10px 0;
-                            color: #333;
-                        }
-                        .item-detail {
-                            font-size: 12px;
-                            margin: 5px 0;
-                            color: #666;
-                        }
-                        #qrcode {
-                            margin: 15px auto;
-                            width: 120px;
-                            height: 120px;
-                        }
-                        .barcode-text {
-                            font-family: 'Courier New', monospace;
-                            font-size: 10px;
-                            margin-top: 5px;
-                            padding: 3px;
-                            background: #f0f0f0;
-                            border-radius: 3px;
-                        }
-                        @media print {
-                            body { padding: 0; }
-                            .no-print { display: none; }
-                        }
-                    </style>
-                </head>
-                <body onload="generate()">
-                    <div class="label-container">
-                        <div class="item-name">${item.nama}</div>
-                        <div class="item-detail">Type: ${item.type || '-'}</div>
-                        <div class="item-detail">Qty: ${item.qtyTotal}</div>
-                        <div class="item-detail">Status: ${item.status}</div>
-                        <div id="qrcode"></div>
-                        <div class="barcode-text">${item.barcode}</div>
-                    </div>
-                    <div class="no-print" style="margin-top: 20px;">
-                        <button onclick="window.print()" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">
-                            🖨️ Print Label
-                        </button>
-                        <button onclick="window.close()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
-                            ✖️ Tutup
-                        </button>
-                    </div>
-                    <script>
-                        function generate() {
-                            const data = ${JSON.stringify(JSON.stringify({
-                                id: item.id,
-                                nama: item.nama,
-                                type: item.type,
-                                qty: item.qtyTotal,
-                                status: item.status,
-                                barcode: item.barcode
-                            }))};
-                            new QRCode(document.getElementById("qrcode"), {
-                                text: data,
-                                width: 120,
-                                height: 120,
-                                correctLevel: QRCode.CorrectLevel.H
-                            });
-                        }
-                    </script>
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
-        }
-        
-        // ============================================
-        // UPLOAD CSV FUNCTIONS
-        // ============================================
-        function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            // Validasi format file
-            if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
-                alert('⚠️ File harus berformat CSV!');
-                event.target.value = '';
-                return;
-            }
-            
-            // Tampilkan info file
-            const fileInfo = document.getElementById('fileInfo');
-            fileInfo.innerHTML = `
-                <strong>File terpilih:</strong> ${file.name}<br>
-                <strong>Ukuran:</strong> ${(file.size / 1024).toFixed(2)} KB<br>
-                <strong>Type:</strong> ${file.type || 'text/csv'}
-            `;
-            fileInfo.style.display = 'block';
-            
-            // Parse CSV menggunakan PapaParse
-            Papa.parse(file, {
-                header: false,
-                skipEmptyLines: true,
-                complete: function(results) {
-                    console.log('CSV parsed:', results);
-                    processCSVData(results.data);
-                },
-                error: function(error) {
-                    alert('❌ Error membaca file CSV: ' + error.message);
-                    console.error('CSV Parse Error:', error);
-                }
-            });
-        }
-        
-        function processCSVData(data) {
-            // Bersihkan data dari baris kosong dan header
-            const cleanedData = data.filter(row => {
-                // Skip baris yang kosong atau hanya berisi "DAFTAR INVENTARIS" dll
-                return row.length > 1 && 
-                       row[0] && 
-                       row[0].trim() !== '' && 
-                       !row[0].includes('DAFTAR') && 
-                       !row[0].includes('TAHUN') &&
-                       !row[0].includes('NO') &&
-                       !row[0].includes('Tangerang') &&
-                       !row[0].includes('Ketua') &&
-                       !row[0].includes('Sekretaris');
-            });
-            
-            // Ambil header (baris pertama yang valid)
-            const headers = ['NO', 'NAMA', 'TYPE', 'Lama', 'Baru', 'Qty', 'STATUS', 'CATATAN'];
-            
-            // Proses data menjadi array of objects
-            csvDataPreview = cleanedData.map(row => {
-                return {
-                    no: row[0] || '',
-                    nama: row[1] || '',
-                    type: row[2] || '',
-                    qtyLama: row[3] ? parseInt(row[3]) || 0 : 0,
-                    qtyBaru: row[4] ? parseInt(row[4]) || 0 : 0,
-                    qtyTotal: row[5] ? parseInt(row[5]) || 0 : 0,
-                    status: row[6] || 'Baik',
-                    catatan: row[7] || '',
-                    barcode: 'N/A'
-                };
-            });
-            
-            // Tampilkan preview
-            showPreview();
-        }
-        
-        function showPreview() {
-            const previewContainer = document.getElementById('previewContainer');
-            const previewTableBody = document.getElementById('previewTableBody');
-            
-            // Clear table
-            previewTableBody.innerHTML = '';
-            
-            // Isi table dengan preview data
-            csvDataPreview.forEach(item => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${item.no}</td>
-                    <td>${item.nama}</td>
-                    <td>${item.type}</td>
-                    <td>${item.qtyLama}</td>
-                    <td>${item.qtyBaru}</td>
-                    <td>${item.qtyTotal}</td>
-                    <td>${item.status}</td>
-                    <td>${item.catatan}</td>
-                `;
-                previewTableBody.appendChild(row);
-            });
-            
-            // Tampilkan summary
-            const summary = document.getElementById('importSummary');
-            summary.innerHTML = `
-                <strong>📊 Ringkasan Import:</strong><br>
-                Total baris: ${csvDataPreview.length}<br>
-                Barang dengan status Baik: ${csvDataPreview.filter(i => i.status === 'Baik').length}<br>
-                Barang Rusak: ${csvDataPreview.filter(i => i.status === 'Rusak').length}<br>
-                Barang Perlu Perbaikan: ${csvDataPreview.filter(i => i.status === 'Perlu Perbaikan').length}
-            `;
-            summary.style.display = 'block';
-            
-            // Tampilkan preview container
-            previewContainer.style.display = 'block';
-        }
-        
-        function importData() {
-            if (csvDataPreview.length === 0) {
-                alert('⚠️ Tidak ada data untuk diimport!');
-                return;
-            }
-            
-            if (confirm(`❓ Apakah Anda yakin ingin mengimport ${csvDataPreview.length} data barang?\n\nData lama akan ditambahkan dengan data baru.`)) {
-                // Generate ID unik dan barcode untuk setiap item
-                const importedData = csvDataPreview.map(item => {
-                    // Generate barcode dari nama barang
-                    let barcode = 'N/A';
-                    if (item.nama && item.nama.trim() !== '') {
-                        const prefix = item.nama.substring(0, 2).toUpperCase().replace(/[^A-Z0-9]/g, '');
-                        barcode = prefix + Date.now().toString().slice(-4) + Math.floor(Math.random() * 1000);
-                    }
-                    
-                    return {
-                        id: Date.now() + Math.floor(Math.random() * 1000000),
-                        nama: item.nama,
-                        type: item.type,
-                        qtyLama: item.qtyLama,
-                        qtyBaru: item.qtyBaru,
-                        qtyTotal: item.qtyTotal || (item.qtyLama + item.qtyBaru),
-                        status: item.status,
-                        catatan: item.catatan,
-                        barcode: barcode
-                    };
-                });
-                
-                // Gabungkan dengan data existing atau replace
-                const mergeData = confirm('❓ Apakah Anda ingin menggabungkan dengan data yang sudah ada?\n\nTekan Cancel untuk mengganti semua data.');
-                
-                if (mergeData) {
-                    // Gabungkan data
-                    inventoryData = [...inventoryData, ...importedData];
-                } else {
-                    // Ganti semua data
-                    inventoryData = importedData;
-                }
-                
-                // Simpan ke localStorage
-                localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
-                
-                // Update dashboard
-                updateDashboard();
-                
-                // Reset upload
-                cancelImport();
-                
-                // Refresh table
-                renderInventoryTable();
-                
-                // Tampilkan pesan sukses
-                alert(`✅ Berhasil mengimport ${importedData.length} data barang!\n\nSemua barang sudah memiliki barcode otomatis.`);
-            }
-        }
-        
-        function cancelImport() {
-            // Reset file input
-            document.getElementById('fileInput').value = '';
-            document.getElementById('inventoryFileInput').value = '';
-            
-            // Sembunyikan preview
-            document.getElementById('fileInfo').style.display = 'none';
-            document.getElementById('previewContainer').style.display = 'none';
-            document.getElementById('previewTableBody').innerHTML = '';
-            document.getElementById('importSummary').style.display = 'none';
-            
-            csvDataPreview = [];
-        }
-        
-        // ============================================
-        // INVENTORY FUNCTIONS
-        // ============================================
-        function saveItem() {
-            const name = document.getElementById('itemName').value.trim();
-            const type = document.getElementById('itemType').value.trim();
-            const qtyLama = parseInt(document.getElementById('qtyLama').value) || 0;
-            const qtyBaru = parseInt(document.getElementById('qtyBaru').value) || 0;
-            const status = document.querySelector('input[name="status"]:checked').value;
-            const catatan = document.getElementById('itemNote').value.trim();
-            let barcode = document.getElementById('itemBarcode').value.trim();
-            
-            if (!name) {
-                alert('⚠️ Nama barang harus diisi!');
-                return;
-            }
-            
-            // Generate barcode otomatis jika kosong
-            if (!barcode) {
-                const prefix = name.substring(0, 2).toUpperCase().replace(/[^A-Z0-9]/g, '');
-                barcode = prefix + Date.now().toString().slice(-6) + Math.floor(Math.random() * 100);
-            }
-            
-            // Create new item
-            const newItem = {
-                id: window.editingItemId || Date.now(),
-                nama: name,
-                type: type,
-                qtyLama: qtyLama,
-                qtyBaru: qtyBaru,
-                qtyTotal: qtyLama + qtyBaru,
-                status: status,
-                catatan: catatan,
-                barcode: barcode
-            };
-            
-            if (window.editingItemId) {
-                // Update existing item
-                const index = inventoryData.findIndex(i => i.id === window.editingItemId);
-                if (index !== -1) {
-                    inventoryData[index] = newItem;
-                }
-            } else {
-                // Add new item
-                inventoryData.push(newItem);
-            }
-            
-            // Save to localStorage
-            localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
-            
-            // Clear form
-            document.getElementById('itemName').value = '';
-            document.getElementById('itemType').value = '';
-            document.getElementById('qtyLama').value = '0';
-            document.getElementById('qtyBaru').value = '0';
-            document.querySelector('input[name="status"][value="Baik"]').checked = true;
-            document.getElementById('itemNote').value = '';
-            document.getElementById('itemBarcode').value = '';
-            document.getElementById('qrcodeContainer').innerHTML = '';
-            delete window.editingItemId;
-            
-            // Update dashboard
-            updateDashboard();
-            
-            // Show success message
-            alert('✅ Barang berhasil ' + (window.editingItemId ? 'diupdate' : 'ditambahkan') + '!\n\nBarcode: ' + barcode);
-            
-            // Go back to inventory page
-            showPage('inventoryPage');
-        }
-        
-        function renderInventoryTable() {
-            const tbody = document.getElementById('inventoryTableBody');
-            tbody.innerHTML = '';
-            
-            if (inventoryData.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="10" style="text-align: center; padding: 40px;">
-                            Belum ada data inventaris. <br>
-                            <button class="menu-btn" onclick="showPage('addPage')" style="margin-top: 10px; width: auto; padding: 8px 16px;">
-                                ➕ Tambah Barang Pertama
-                            </button>
-                            <br><br>
-                            <button class="menu-btn" onclick="document.getElementById('inventoryFileInput').click()" style="margin-top: 10px; width: auto; padding: 8px 16px; background: #ffc107; color: #333;">
-                                📤 Upload Data CSV
-                            </button>
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-            
-            inventoryData.forEach((item, index) => {
-                const row = document.createElement('tr');
-                
-                // Status color
-                let statusColor = '#4CAF50'; // Baik
-                if (item.status === 'Rusak') statusColor = '#f44336';
-                if (item.status === 'Perlu Perbaikan') statusColor = '#ff9800';
-                
-                // Generate barcode jika belum ada
-                if (!item.barcode || item.barcode === 'N/A') {
-                    const prefix = item.nama.substring(0, 2).toUpperCase().replace(/[^A-Z0-9]/g, '');
-                    item.barcode = prefix + Date.now().toString().slice(-4) + Math.floor(Math.random() * 1000);
-                    localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
-                }
-                
-                row.innerHTML = `
-                    <td>${index + 1}</td>
-                    <td>${item.nama}</td>
-                    <td>${item.type || '-'}</td>
-                    <td>${item.qtyLama}</td>
-                    <td>${item.qtyBaru}</td>
-                    <td>${item.qtyTotal}</td>
-                    <td><span style="color: ${statusColor}; font-weight: bold;">${item.status}</span></td>
-                    <td>${item.barcode}</td>
-                    <td>
-                        <button class="btn-info" style="width: auto; padding: 5px 10px; font-size: 12px;" onclick="editItem(${item.id})">✏️</button>
-                        <button class="btn-danger" style="width: auto; padding: 5px 10px; font-size: 12px;" onclick="deleteItem(${item.id})">🗑️</button>
-                        <button class="btn-warning" style="width: auto; padding: 5px 10px; font-size: 12px;" onclick="printBarcodeLabel(${item.id})">🖨️</button>
-                    </td>
-                `;
-                
-                tbody.appendChild(row);
-            });
-        }
-        
-        function deleteItem(id) {
-            if (confirm('❓ Apakah Anda yakin ingin menghapus barang ini?')) {
-                inventoryData = inventoryData.filter(item => item.id !== id);
-                localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
-                updateDashboard();
-                renderInventoryTable();
-                alert('✅ Barang berhasil dihapus!');
-            }
-        }
-        
-        function editItem(id) {
-            const item = inventoryData.find(i => i.id === id);
-            if (!item) return;
-            
-            // Fill form with item data
-            document.getElementById('itemName').value = item.nama;
-            document.getElementById('itemType').value = item.type || '';
-            document.getElementById('qtyLama').value = item.qtyLama;
-            document.getElementById('qtyBaru').value = item.qtyBaru;
-            document.querySelector(`input[name="status"][value="${item.status}"]`).checked = true;
-            document.getElementById('itemNote').value = item.catatan || '';
-            document.getElementById('itemBarcode').value = item.barcode;
-            
-            // Generate QR preview
-            setTimeout(() => {
-                if (item.barcode && item.barcode !== 'N/A') {
-                    generateQR();
-                }
-            }, 100);
-            
-            // Store current ID for update
-            window.editingItemId = id;
-            
-            // Go to add page
-            showPage('addPage');
-            
-            // Change save button text
-            const saveBtn = document.querySelector('#addPage button[onclick="saveItem()"]');
-            if (saveBtn) {
-                saveBtn.textContent = '✏️ Update';
-            }
-        }
-        
-        // ============================================
-        // DASHBOARD FUNCTIONS
-        // ============================================
-        function updateDashboard() {
-            const total = inventoryData.length;
-            const baik = inventoryData.filter(i => i.status === 'Baik').length;
-            const rusak = inventoryData.filter(i => i.status === 'Rusak').length;
-            const perbaikan = inventoryData.filter(i => i.status === 'Perlu Perbaikan').length;
-            
-            document.getElementById('totalItems').textContent = total;
-            document.getElementById('goodItems').textContent = baik;
-            document.getElementById('brokenItems').textContent = rusak;
-            document.getElementById('repairItems').textContent = perbaikan;
-        }
-        
-        // ============================================
-        // BARCODE SCANNER FUNCTIONS
-        // ============================================
-        document.addEventListener('DOMContentLoaded', function() {
-            // Start Scan Button
-            document.getElementById('startScan').addEventListener('click', startScanner);
-            
-            // Stop Scan Button
-            document.getElementById('stopScan').addEventListener('click', stopScanner);
-        });
-        
-        function startScanner() {
-            // Check camera permission
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(function(stream) {
-                    // Stop stream temporarily
-                    stream.getTracks().forEach(track => track.stop());
-                    
-                    initQuaggaScanner();
-                })
-                .catch(function(err) {
-                    alert('❌ Gagal mengakses kamera!\n\n' + err.message + '\n\nPastikan:\n1. Menggunakan HTTPS (Vercel sudah OK ✅)\n2. Memberikan izin kamera\n3. Menggunakan browser yang support (Chrome, Firefox, Edge)');
-                    console.error('Camera error:', err);
-                });
-        }
-        
-        function initQuaggaScanner() {
-            document.getElementById('startScan').style.display = 'none';
-            document.getElementById('stopScan').style.display = 'inline-block';
-            document.getElementById('scanStatus').innerHTML = '🔍 Memindai... Arahkan kamera ke barcode';
-            document.getElementById('scanStatus').style.background = '#fff3cd';
-            
-            if (quaggaInitialized) {
-                Quagga.start();
-                return;
-            }
-            
-            Quagga.init({
-                inputStream: {
-                    name: "Live",
-                    type: "LiveStream",
-                    target: document.querySelector('#interactive'),
-                    constraints: {
-                        width: { min: 640 },
-                        height: { min: 480 },
-                        facingMode: "environment",
-                        aspectRatio: { min: 1, max: 2 }
-                    },
-                },
-                decoder: {
-                    readers: [
-                        "code_128_reader",
-                        "ean_reader",
-                        "ean_8_reader",
-                        "code_39_reader",
-                        "upc_reader",
-                        "code_93_reader"
-                    ]
-                },
-                locator: {
-                    patchSize: "medium",
-                    halfSample: true
-                },
-                numOfWorkers: 2,
-                frequency: 10
-            }, function(err) {
-                if (err) {
-                    console.error('Quagga init error:', err);
-                    document.getElementById('scanStatus').innerHTML = '❌ Error: ' + err.message;
-                    document.getElementById('scanStatus').style.background = '#ffebee';
-                    document.getElementById('startScan').style.display = 'inline-block';
-                    document.getElementById('stopScan').style.display = 'none';
-                    return;
-                }
-                
-                console.log("Quagga initialized successfully");
-                quaggaInitialized = true;
-                Quagga.start();
-                
-                // Auto-stop timeout after 30 seconds
-                setTimeout(() => {
-                    if (quaggaInitialized && !currentBarcode) {
-                        document.getElementById('scanStatus').innerHTML = '⚠️ Tidak ada barcode terdeteksi dalam 30 detik. Coba lagi!';
-                        document.getElementById('scanStatus').style.background = '#fff3cd';
-                    }
-                }, 30000);
-            });
-            
-            // Event when barcode is detected
-            Quagga.onDetected(function(result) {
-                const code = result.codeResult.code;
-                console.log('Barcode detected:', code);
-                
-                // Stop scanner
-                stopScanner();
-                
-                // Process barcode
-                currentBarcode = code;
-                document.getElementById('scanStatus').innerHTML = '✅ Barcode terdeteksi: <strong>' + code + '</strong>';
-                document.getElementById('scanStatus').style.background = '#e8f5e9';
-                
-                processBarcode(code);
-            });
-            
-            // Error handling
-            Quagga.onProcessed(function(result) {
-                if (result.error) {
-                    console.log('Processing error:', result.error);
-                }
-            });
-        }
-        
-        function stopScanner() {
-            if (quaggaInitialized) {
-                Quagga.stop();
-            }
-            document.getElementById('startScan').style.display = 'inline-block';
-            document.getElementById('stopScan').style.display = 'none';
-            document.getElementById('scanStatus').innerHTML = '⏹️ Scan dihentikan';
-            document.getElementById('scanStatus').style.background = '#f0f0f0';
-            quaggaInitialized = false;
-            currentBarcode = '';
-        }
-        
-        function processBarcode(barcode) {
-            // Search in inventory
-            const item = inventoryData.find(i => i.barcode === barcode);
-            
-            const resultDiv = document.getElementById('resultDetails');
-            const resultContainer = document.getElementById('scanResult');
-            
-            // Clear previous results
-            resultDiv.innerHTML = '';
-            const qrContainer = document.getElementById('scanQRContainer');
-            if (qrContainer) {
-                qrContainer.remove();
-            }
-            
-            if (item) {
-                // Item found
-                let statusColor = '#4CAF50';
-                if (item.status === 'Rusak') statusColor = '#f44336';
-                if (item.status === 'Perlu Perbaikan') statusColor = '#ff9800';
-                
-                resultDiv.innerHTML = `
-                    <p><strong>Nama:</strong> ${item.nama}</p>
-                    <p><strong>Type:</strong> ${item.type || '-'}</p>
-                    <p><strong>Qty Lama:</strong> ${item.qtyLama}</p>
-                    <p><strong>Qty Baru:</strong> ${item.qtyBaru}</p>
-                    <p><strong>Qty Total:</strong> ${item.qtyTotal}</p>
-                    <p><strong>Status:</strong> <span style="color: ${statusColor}; font-weight: bold;">${item.status}</span></p>
-                    <p><strong>Catatan:</strong> ${item.catatan || '-'}</p>
-                    <p><strong>Barcode:</strong> ${item.barcode}</p>
-                    <div style="margin-top: 15px;">
-                        <button class="btn-info" style="width: auto; padding: 8px 16px;" onclick="editItem(${item.id})">✏️ Edit</button>
-                        <button class="btn-danger" style="width: auto; padding: 8px 16px; margin-left: 10px;" onclick="deleteItem(${item.id})">🗑️ Hapus</button>
-                        <button class="btn-warning" style="width: auto; padding: 8px 16px; margin-left: 10px;" onclick="printBarcodeLabel(${item.id})">🖨️ Print Label</button>
-                    </div>
-                `;
-                
-                // Show QR code
-                showQRForItem(item);
-                
-                resultContainer.style.display = 'block';
-            } else {
-                // Item not found
-                resultDiv.innerHTML = `
-                    <p>❌ Barang dengan barcode <strong>${barcode}</strong> tidak ditemukan dalam inventory.</p>
-                    <button class="btn-success" style="width: auto; padding: 8px 16px; margin-top: 10px;" onclick="addItemFromScan('${barcode}')">
-                        ➕ Tambah Barang Baru
-                    </button>
-                `;
-                resultContainer.style.display = 'block';
-            }
-        }
-        
-        function manualSearch() {
-            const barcode = document.getElementById('manualBarcode').value.trim();
-            
-            if (!barcode) {
-                alert('⚠️ Silakan masukkan barcode terlebih dahulu!');
-                return;
-            }
-            
-            document.getElementById('scanStatus').innerHTML = '🔍 Mencari: <strong>' + barcode + '</strong>';
-            document.getElementById('scanStatus').style.background = '#e3f2fd';
-            currentBarcode = barcode;
-            processBarcode(barcode);
-        }
-        
-        function addItemFromScan(barcode) {
-            // Go to add page with barcode pre-filled
-            showPage('addPage');
-            
-            // Fill barcode field
-            document.getElementById('itemBarcode').value = barcode;
-            
-            // Focus on name field
-            document.getElementById('itemName').focus();
-            
-            // Show message
-            setTimeout(() => {
-                alert('ℹ️ Barcode sudah diisi otomatis. Silakan lengkapi data barang lainnya.');
-            }, 100);
-        }
-        
-        // ============================================
-        // REPORT FUNCTIONS
-        // ============================================
-        function renderReportTable() {
-            const tbody = document.getElementById('reportTableBody');
-            tbody.innerHTML = '';
-            
-            if (inventoryData.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="8" style="text-align: center; padding: 40px;">
-                            Belum ada data inventaris.
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-            
-            inventoryData.forEach((item, index) => {
-                const row = document.createElement('tr');
-                
-                row.innerHTML = `
-                    <td>${index + 1}</td>
-                    <td>${item.nama}</td>
-                    <td>${item.type || '-'}</td>
-                    <td>${item.qtyLama}</td>
-                    <td>${item.qtyBaru}</td>
-                    <td>${item.qtyTotal}</td>
-                    <td>${item.status}</td>
-                    <td>${item.catatan || '-'}</td>
-                `;
-                
-                tbody.appendChild(row);
-            });
-        }
-        
-        function downloadPDF() {
-            alert('ℹ️ Fitur download PDF akan menggunakan library seperti jsPDF.\n\nUntuk sekarang, Anda bisa print halaman ini (Ctrl+P) dan save sebagai PDF.');
-        }
-        
-        // ============================================
-        // INITIALIZE
-        // ============================================
-        window.onload = function() {
-            // Load data from localStorage
-            inventoryData = JSON.parse(localStorage.getItem('inventoryData')) || [];
-            
-            // Auto-generate barcode untuk data lama yang belum punya
-            let updated = false;
-            inventoryData.forEach(item => {
-                if (!item.barcode || item.barcode === 'N/A') {
-                    const prefix = item.nama.substring(0, 2).toUpperCase().replace(/[^A-Z0-9]/g, '');
-                    item.barcode = prefix + Date.now().toString().slice(-4) + Math.floor(Math.random() * 1000);
-                    updated = true;
-                }
-            });
-            
-            if (updated) {
-                localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
-            }
-            
-            // Update dashboard
-            updateDashboard();
-            
-            console.log('✅ Aplikasi Inventory Sekolah Minggu siap!');
-            console.log('✅ QR Code Generator aktif!');
-            console.log('✅ Auto-generate barcode untuk semua barang');
-        };
-    </script>
+<div class="container">
+<!-- 🔐 Login Page -->
+<div id="loginPage" class="page">
+<h2>🔐 Login Inventory</h2>
+<div class="form-group">
+<label for="username">Username</label>
+<input type="text" id="username" placeholder="Masukkan username">
+</div>
+<div class="form-group">
+<label for="password">Password</label>
+<input type="password" id="password" placeholder="Masukkan password">
+</div>
+<button onclick="login()">Masuk</button>
+</div>
+<!-- 🏠 Dashboard Page -->
+<div id="dashboardPage" class="page">
+<h2>🏠 Dashboard Inventaris</h2>
+<p style="text-align: center; margin-bottom: 20px; font-size: 18px;">Selamat datang, <span id="userName">Admin</span>!</p>
+<div class="dashboard-stats">
+<div class="stat-card">
+<p>Total Barang</p>
+<h3 id="totalItems">0</h3>
+</div>
+<div class="stat-card">
+<p>Barang Baik</p>
+<h3 id="goodItems">0</h3>
+</div>
+<div class="stat-card">
+<p>Perlu Perbaikan</p>
+<h3 id="repairItems">0</h3>
+</div>
+<div class="stat-card">
+<p>Barang Rusak</p>
+<h3 id="brokenItems">0</h3>
+</div>
+</div>
+<div class="upload-section">
+<h3>📤 Upload Data Inventory (CSV)</h3>
+<div class="upload-area" onclick="document.getElementById('fileInput').click()">
+<p><strong>Klik di sini</strong> atau <strong>drag & drop</strong> file CSV Anda</p>
+<p style="font-size: 14px; color: #666; margin-top: 10px;">Format file: .csv</p>
+<input type="file" id="fileInput" accept=".csv" onchange="handleFileSelect(event)">
+</div>
+<div id="fileInfo" style="display: none;" class="file-info"></div>
+<div id="previewContainer" style="display: none; margin-top: 20px;">
+<h4>📋 Preview Data:</h4>
+<div style="max-height: 300px; overflow-y: auto; margin-top: 10px;">
+<table class="preview-table" id="previewTable">
+<thead>
+<tr>
+<th>NO</th>
+<th>NAMA</th>
+<th>TYPE</th>
+<th>LAMA</th>
+<th>BARU</th>
+<th>QTY</th>
+<th>STATUS</th>
+<th>CATATAN</th>
+</tr>
+</thead>
+<tbody id="previewTableBody"></tbody>
+</table>
+</div>
+<div id="importSummary" class="import-summary" style="display: none;"></div>
+<div class="action-buttons" style="margin-top: 15px;">
+<button class="btn-success" onclick="importData()" style="flex: 1;">✅ Import Data</button>
+<button class="btn-secondary" onclick="cancelImport()" style="flex: 1;">❌ Batal</button>
+</div>
+</div>
+</div>
+<div class="dashboard-menu">
+<button class="menu-btn" onclick="showPage('inventoryPage')">📋 Daftar Inventaris</button>
+<button class="menu-btn" onclick="showPage('addPage')">➕ Tambah Barang</button>
+<button class="menu-btn" onclick="showPage('scanPage')">📷 Scan Barcode</button>
+<button class="menu-btn" onclick="showPage('reportPage')">📊 Laporan</button>
+<button class="menu-btn" onclick="logout()">🚪 Logout</button>
+</div>
+</div>
+<!-- 📋 Inventory Page -->
+<div id="inventoryPage" class="page">
+<h2>📋 Daftar Inventaris</h2>
+<div class="action-buttons">
+<button class="menu-btn" onclick="showPage('addPage')" style="flex:1;">➕ Tambah Barang</button>
+<button class="menu-btn" onclick="showPage('scanPage')" style="flex:1;">📷 Scan Barcode</button>
+<button class="menu-btn" onclick="document.getElementById('inventoryFileInput').click()" style="flex:1; background: #ffc107; color: #333;">📤 Upload CSV</button>
+<button class="menu-btn" onclick="showPage('dashboardPage')" style="flex:1;">⬅️ Kembali</button>
+<input type="file" id="inventoryFileInput" accept=".csv" onchange="handleFileSelect(event)" style="display: none;">
+</div>
+<table>
+<thead>
+<tr>
+<th>No</th>
+<th>Nama</th>
+<th>Type</th>
+<th>Qty Lama</th>
+<th>Qty Baru</th>
+<th>Qty Total</th>
+<th>Status</th>
+<th>Barcode</th>
+<th>Aksi</th>
+</tr>
+</thead>
+<tbody id="inventoryTableBody">
+<!-- Data akan diisi oleh JavaScript -->
+</tbody>
+</table>
+</div>
+<!-- ➕ Add Page -->
+<div id="addPage" class="page">
+<h2>➕ Tambah Barang</h2>
+<div class="form-grid">
+<div class="form-group-inline">
+<label for="itemName">Nama Barang *</label>
+<input type="text" id="itemName" placeholder="Masukkan nama barang" required>
+</div>
+<div class="form-group-inline">
+<label for="itemType">Type</label>
+<input type="text" id="itemType" placeholder="Masukkan type barang">
+</div>
+<div class="form-group-inline">
+<label for="qtyLama">Qty Lama</label>
+<input type="number" id="qtyLama" placeholder="Jumlah lama" min="0" value="0">
+</div>
+<div class="form-group-inline">
+<label for="qtyBaru">Qty Baru</label>
+<input type="number" id="qtyBaru" placeholder="Jumlah baru" min="0" value="0">
+</div>
+<div class="form-group-inline" style="grid-column: span 2;">
+<label>Status</label>
+<div class="radio-group">
+<label><input type="radio" name="status" value="Baik" checked> Baik</label>
+<label><input type="radio" name="status" value="Rusak"> Rusak</label>
+<label><input type="radio" name="status" value="Perlu Perbaikan"> Perlu Perbaikan</label>
+</div>
+</div>
+<div class="form-group-inline" style="grid-column: span 2;">
+<label for="itemNote">Catatan</label>
+<textarea id="itemNote" placeholder="Masukkan catatan (opsional)"></textarea>
+</div>
+<div class="form-group-inline" style="grid-column: span 2;">
+<label for="itemBarcode">Barcode</label>
+<input type="text" id="itemBarcode" placeholder="Scan atau ketik barcode (otomatis jika kosong)">
+</div>
+<div class="form-group-inline" style="grid-column: span 2;">
+<label>QR Code Preview</label>
+<div id="qrcodeContainer"></div>
+<button type="button" class="btn-info" style="width: auto; margin-top: 10px;" onclick="generateQR()">
+🖨️ Generate QR Code
+</button>
+</div>
+</div>
+<div class="action-buttons">
+<button onclick="saveItem()">💾 Simpan</button>
+<button class="btn-secondary" onclick="showPage('inventoryPage')">⬅️ Kembali</button>
+</div>
+</div>
+<!-- 📷 Scan Page -->
+<div id="scanPage" class="page">
+<h2>📷 Scan Barcode</h2>
+<!-- Preview kamera -->
+<div id="interactive" class="viewport">
+<video></video>
+</div>
+<!-- Status & Hasil -->
+<div id="scanStatus">
+Tekan tombol di bawah untuk mulai scan
+</div>
+<!-- Tombol Kontrol -->
+<div class="scan-controls">
+<button id="startScan">▶️ Mulai Scan</button>
+<button id="stopScan" style="display: none;">⏹️ Stop Scan</button>
+</div>
+<!-- Input Manual (Fallback) -->
+<div class="manual-input-group">
+<h4>Atau Masukkan Barcode Manual:</h4>
+<input type="text" id="manualBarcode" placeholder="Ketik barcode di sini...">
+<button class="manual-search-btn" onclick="manualSearch()">🔍 Cari</button>
+</div>
+<!-- Hasil Pencarian -->
+<div id="scanResult" style="display: none;">
+<h3>✅ Hasil Pencarian:</h3>
+<div id="resultDetails"></div>
+</div>
+<div class="action-buttons">
+<button class="btn-secondary" onclick="showPage('inventoryPage')">⬅️ Kembali</button>
+</div>
+</div>
+<!-- 📊 Report Page -->
+<div id="reportPage" class="page">
+<h2>📊 Laporan Inventaris</h2>
+<div style="text-align: center; margin-bottom: 30px;">
+<h3>DAFTAR INVENTARIS SIE SEKOLAH MINGGU</h3>
+<p><strong>TAHUN 2026</strong></p>
+</div>
+<table>
+<thead>
+<tr>
+<th>NO</th>
+<th>NAMA</th>
+<th>TYPE</th>
+<th>LAMA</th>
+<th>BARU</th>
+<th>QTY</th>
+<th>STATUS</th>
+<th>CATATAN</th>
+</tr>
+</thead>
+<tbody id="reportTableBody">
+<!-- Data akan diisi oleh JavaScript -->
+</tbody>
+</table>
+<div style="margin-top: 40px; text-align: right;">
+<p>Tangerang, 31 Desember 2025</p>
+<p><strong>St. Dameria Saragih</strong><br>Ketua SM</p>
+<p style="margin-top: 40px;"><strong>Sanny Girsang</strong><br>Sekretaris SM</p>
+</div>
+<div class="action-buttons">
+<button class="btn-info" onclick="downloadPDF()">📥 Download PDF</button>
+<button class="btn-secondary" onclick="showPage('dashboardPage')">⬅️ Kembali</button>
+</div>
+</div>
+</div>
+<script>
+// ============================================
+// GLOBAL VARIABLES
+// ============================================
+let currentUser = null;
+let quaggaInitialized = false;
+let currentBarcode = '';
+let inventoryData = JSON.parse(localStorage.getItem('inventoryData')) || [];
+let csvDataPreview = []; // Untuk menyimpan preview data CSV
+
+// ============================================
+// LOGIN & LOGOUT FUNCTIONS
+// ============================================
+function login() {
+const username = document.getElementById('username').value;
+const password = document.getElementById('password').value;
+// Simple validation (you can enhance this)
+if (!username || !password) {
+alert('⚠️ Username dan password harus diisi!');
+return;
+}
+// For demo, accept any credentials
+currentUser = username;
+document.getElementById('userName').textContent = username;
+updateDashboard();
+showPage('dashboardPage');
+}
+
+function logout() {
+currentUser = null;
+showPage('loginPage');
+document.getElementById('username').value = '';
+document.getElementById('password').value = '';
+}
+
+// ============================================
+// PAGE NAVIGATION
+// ============================================
+function showPage(pageId) {
+// Hide all pages
+document.querySelectorAll('.page').forEach(page => {
+page.style.display = 'none';
+});
+// Show selected page
+document.getElementById(pageId).style.display = 'block';
+// Stop scanner if leaving scan page
+if (pageId !== 'scanPage' && quaggaInitialized) {
+stopScanner();
+}
+// Clear QR code container when leaving add page
+if (pageId !== 'addPage') {
+document.getElementById('qrcodeContainer').innerHTML = '';
+}
+// Refresh data if needed
+if (pageId === 'inventoryPage') {
+renderInventoryTable();
+} else if (pageId === 'reportPage') {
+renderReportTable();
+}
+}
+
+// ============================================
+// QR CODE FUNCTIONS
+// ============================================
+function generateQR() {
+const name = document.getElementById('itemName').value.trim();
+const type = document.getElementById('itemType').value.trim();
+let barcode = document.getElementById('itemBarcode').value.trim();
+
+// Validasi nama barang
+if (!name) {
+alert('⚠️ Nama barang harus diisi terlebih dahulu!');
+return;
+}
+
+// Generate barcode otomatis jika kosong
+if (!barcode) {
+const prefix = name.substring(0, 2).toUpperCase();
+barcode = prefix + Date.now().toString().slice(-6) + Math.floor(Math.random() * 100);
+document.getElementById('itemBarcode').value = barcode;
+alert('ℹ️ Barcode otomatis digenerate: ' + barcode);
+}
+
+// Data untuk QR code (format JSON string)
+const qrData = JSON.stringify({
+id: window.editingItemId || Date.now(),
+nama: name,
+type: type || '-',
+barcode: barcode,
+timestamp: new Date().toISOString()
+});
+
+// Clear container
+const container = document.getElementById('qrcodeContainer');
+container.innerHTML = '';
+
+// Generate QR code
+new QRCode(container, {
+text: qrData,
+width: 160,
+height: 160,
+correctLevel: QRCode.CorrectLevel.H
+});
+
+// Tampilkan info
+container.innerHTML += `<p style="margin-top: 10px; font-size: 12px; color: #666;">Barcode: ${barcode}</p>`;
+
+alert('✅ QR Code berhasil digenerate!\n\nBarcode: ' + barcode + '\n\nScan QR code ini untuk melihat detail barang.');
+}
+
+function showQRForItem(item) {
+const resultDiv = document.getElementById('resultDetails');
+
+// Buat container untuk QR code
+const qrContainer = document.createElement('div');
+qrContainer.id = 'scanQRContainer';
+qrContainer.style.marginTop = '20px';
+qrContainer.style.textAlign = 'center';
+qrContainer.style.padding = '15px';
+qrContainer.style.background = '#f9f9f9';
+qrContainer.style.borderRadius = '8px';
+qrContainer.style.border = '2px solid #4CAF50';
+
+// Data QR
+const qrData = JSON.stringify({
+id: item.id,
+nama: item.nama,
+type: item.type || '-',
+qty: item.qtyTotal,
+status: item.status,
+barcode: item.barcode,
+catatan: item.catatan || '-'
+});
+
+// Tambahkan container ke result
+resultDiv.appendChild(qrContainer);
+
+// Generate QR code
+new QRCode(qrContainer, {
+text: qrData,
+width: 180,
+height: 180,
+correctLevel: QRCode.CorrectLevel.H
+});
+
+// Tambahkan label
+qrContainer.innerHTML += `<p style="margin-top: 10px; font-size: 12px; color: #666;">Scan untuk info lengkap</p>`;
+}
+
+function printBarcodeLabel(id) {
+const item = inventoryData.find(i => i.id === id);
+if (!item) return;
+
+// Generate barcode jika belum ada
+if (item.barcode === 'N/A' || !item.barcode) {
+const prefix = item.nama.substring(0, 2).toUpperCase();
+item.barcode = prefix + Date.now().toString().slice(-6) + Math.floor(Math.random() * 100);
+localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
+}
+
+// Buat window baru untuk print
+const printWindow = window.open('', '_blank');
+printWindow.document.write(`
+<!DOCTYPE html>
+<html>
+<head>
+<title>Label Barcode - ${item.nama}</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+body { 
+font-family: Arial, sans-serif; 
+text-align: center; 
+padding: 20px; 
+margin: 0;
+background: white;
+}
+.label-container {
+width: 300px;
+margin: 0 auto;
+border: 2px solid #000;
+padding: 15px;
+page-break-after: always;
+}
+.item-name {
+font-size: 18px;
+font-weight: bold;
+margin: 10px 0;
+color: #333;
+}
+.item-detail {
+font-size: 12px;
+margin: 5px 0;
+color: #666;
+}
+#qrcode {
+margin: 15px auto;
+width: 120px;
+height: 120px;
+}
+.barcode-text {
+font-family: 'Courier New', monospace;
+font-size: 10px;
+margin-top: 5px;
+padding: 3px;
+background: #f0f0f0;
+border-radius: 3px;
+}
+@media print {
+body { padding: 0; }
+.no-print { display: none; }
+}
+</style>
+</head>
+<body onload="generate()">
+<div class="label-container">
+<div class="item-name">${item.nama}</div>
+<div class="item-detail">Type: ${item.type || '-'}</div>
+<div class="item-detail">Qty: ${item.qtyTotal}</div>
+<div class="item-detail">Status: ${item.status}</div>
+<div id="qrcode"></div>
+<div class="barcode-text">${item.barcode}</div>
+</div>
+<div class="no-print" style="margin-top: 20px;">
+<button onclick="window.print()" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">
+🖨️ Print Label
+</button>
+<button onclick="window.close()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
+✖️ Tutup
+</button>
+</div>
+<script>
+function generate() {
+const data = ${JSON.stringify(JSON.stringify({
+id: item.id,
+nama: item.nama,
+type: item.type,
+qty: item.qtyTotal,
+status: item.status,
+barcode: item.barcode
+}))};
+new QRCode(document.getElementById("qrcode"), {
+text: data,
+width: 120,
+height: 120,
+correctLevel: QRCode.CorrectLevel.H
+});
+}
+</script>
+</body>
+</html>
+`);
+printWindow.document.close();
+}
+
+// ============================================
+// UPLOAD CSV FUNCTIONS
+// ============================================
+function handleFileSelect(event) {
+const file = event.target.files[0];
+if (!file) return;
+
+// Validasi format file
+if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
+alert('⚠️ File harus berformat CSV!');
+event.target.value = '';
+return;
+}
+
+// Tampilkan info file
+const fileInfo = document.getElementById('fileInfo');
+fileInfo.innerHTML = `
+<strong>File terpilih:</strong> ${file.name}<br>
+<strong>Ukuran:</strong> ${(file.size / 1024).toFixed(2)} KB<br>
+<strong>Type:</strong> ${file.type || 'text/csv'}
+`;
+fileInfo.style.display = 'block';
+
+// Parse CSV menggunakan PapaParse
+Papa.parse(file, {
+header: false,
+skipEmptyLines: true,
+complete: function(results) {
+console.log('CSV parsed:', results);
+processCSVData(results.data);
+},
+error: function(error) {
+alert('❌ Error membaca file CSV: ' + error.message);
+console.error('CSV Parse Error:', error);
+}
+});
+}
+
+function processCSVData(data) {
+// Bersihkan data dari baris kosong dan header
+const cleanedData = data.filter(row => {
+// Skip baris yang kosong atau hanya berisi "DAFTAR INVENTARIS" dll
+return row.length > 1 &&
+row[0] &&
+row[0].trim() !== '' &&
+!row[0].includes('DAFTAR') &&
+!row[0].includes('TAHUN') &&
+!row[0].includes('NO') &&
+!row[0].includes('Tangerang') &&
+!row[0].includes('Ketua') &&
+!row[0].includes('Sekretaris');
+});
+
+// Ambil header (baris pertama yang valid)
+const headers = ['NO', 'NAMA', 'TYPE', 'Lama', 'Baru', 'Qty', 'STATUS', 'CATATAN'];
+
+// Proses data menjadi array of objects
+csvDataPreview = cleanedData.map(row => {
+return {
+no: row[0] || '',
+nama: row[1] || '',
+type: row[2] || '',
+qtyLama: row[3] ? parseInt(row[3]) || 0 : 0,
+qtyBaru: row[4] ? parseInt(row[4]) || 0 : 0,
+qtyTotal: row[5] ? parseInt(row[5]) || 0 : 0,
+status: row[6] || 'Baik',
+catatan: row[7] || '',
+barcode: 'N/A'
+};
+});
+
+// Tampilkan preview
+showPreview();
+}
+
+function showPreview() {
+const previewContainer = document.getElementById('previewContainer');
+const previewTableBody = document.getElementById('previewTableBody');
+
+// Clear table
+previewTableBody.innerHTML = '';
+
+// Isi table dengan preview data
+csvDataPreview.forEach(item => {
+const row = document.createElement('tr');
+row.innerHTML = `
+<td>${item.no}</td>
+<td>${item.nama}</td>
+<td>${item.type}</td>
+<td>${item.qtyLama}</td>
+<td>${item.qtyBaru}</td>
+<td>${item.qtyTotal}</td>
+<td>${item.status}</td>
+<td>${item.catatan}</td>
+`;
+previewTableBody.appendChild(row);
+});
+
+// Tampilkan summary
+const summary = document.getElementById('importSummary');
+summary.innerHTML = `
+<strong>📊 Ringkasan Import:</strong><br>
+Total baris: ${csvDataPreview.length}<br>
+Barang dengan status Baik: ${csvDataPreview.filter(i => i.status === 'Baik').length}<br>
+Barang Rusak: ${csvDataPreview.filter(i => i.status === 'Rusak').length}<br>
+Barang Perlu Perbaikan: ${csvDataPreview.filter(i => i.status === 'Perlu Perbaikan').length}
+`;
+summary.style.display = 'block';
+
+// Tampilkan preview container
+previewContainer.style.display = 'block';
+}
+
+function importData() {
+if (csvDataPreview.length === 0) {
+alert('⚠️ Tidak ada data untuk diimport!');
+return;
+}
+
+if (confirm(`❓ Apakah Anda yakin ingin mengimport ${csvDataPreview.length} data barang?\n\nData lama akan ditambahkan dengan data baru.`)) {
+// Generate ID unik dan barcode untuk setiap item
+const importedData = csvDataPreview.map(item => {
+// Generate barcode dari nama barang
+let barcode = 'N/A';
+if (item.nama && item.nama.trim() !== '') {
+const prefix = item.nama.substring(0, 2).toUpperCase().replace(/[^A-Z0-9]/g, '');
+barcode = prefix + Date.now().toString().slice(-4) + Math.floor(Math.random() * 1000);
+}
+
+return {
+id: Date.now() + Math.floor(Math.random() * 1000000),
+nama: item.nama,
+type: item.type,
+qtyLama: item.qtyLama,
+qtyBaru: item.qtyBaru,
+qtyTotal: item.qtyTotal || (item.qtyLama + item.qtyBaru),
+status: item.status,
+catatan: item.catatan,
+barcode: barcode
+};
+});
+
+// Gabungkan dengan data existing atau replace
+const mergeData = confirm('❓ Apakah Anda ingin menggabungkan dengan data yang sudah ada?\n\nTekan Cancel untuk mengganti semua data.');
+
+if (mergeData) {
+// Gabungkan data
+inventoryData = [...inventoryData, ...importedData];
+} else {
+// Ganti semua data
+inventoryData = importedData;
+}
+
+// Simpan ke localStorage
+localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
+
+// Update dashboard
+updateDashboard();
+
+// Reset upload
+cancelImport();
+
+// Refresh table
+renderInventoryTable();
+
+// Tampilkan pesan sukses
+alert(`✅ Berhasil mengimport ${importedData.length} data barang!\n\nSemua barang sudah memiliki barcode otomatis.`);
+}
+}
+
+function cancelImport() {
+// Reset file input
+document.getElementById('fileInput').value = '';
+document.getElementById('inventoryFileInput').value = '';
+
+// Sembunyikan preview
+document.getElementById('fileInfo').style.display = 'none';
+document.getElementById('previewContainer').style.display = 'none';
+document.getElementById('previewTableBody').innerHTML = '';
+document.getElementById('importSummary').style.display = 'none';
+
+csvDataPreview = [];
+}
+
+// ============================================
+// INVENTORY FUNCTIONS
+// ============================================
+function saveItem() {
+const name = document.getElementById('itemName').value.trim();
+const type = document.getElementById('itemType').value.trim();
+const qtyLama = parseInt(document.getElementById('qtyLama').value) || 0;
+const qtyBaru = parseInt(document.getElementById('qtyBaru').value) || 0;
+const status = document.querySelector('input[name="status"]:checked').value;
+const catatan = document.getElementById('itemNote').value.trim();
+let barcode = document.getElementById('itemBarcode').value.trim();
+
+if (!name) {
+alert('⚠️ Nama barang harus diisi!');
+return;
+}
+
+// Generate barcode otomatis jika kosong
+if (!barcode) {
+const prefix = name.substring(0, 2).toUpperCase().replace(/[^A-Z0-9]/g, '');
+barcode = prefix + Date.now().toString().slice(-6) + Math.floor(Math.random() * 100);
+}
+
+// Create new item
+const newItem = {
+id: window.editingItemId || Date.now(),
+nama: name,
+type: type,
+qtyLama: qtyLama,
+qtyBaru: qtyBaru,
+qtyTotal: qtyLama + qtyBaru,
+status: status,
+catatan: catatan,
+barcode: barcode
+};
+
+if (window.editingItemId) {
+// Update existing item
+const index = inventoryData.findIndex(i => i.id === window.editingItemId);
+if (index !== -1) {
+inventoryData[index] = newItem;
+}
+} else {
+// Add new item
+inventoryData.push(newItem);
+}
+
+// Save to localStorage
+localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
+
+// Clear form
+document.getElementById('itemName').value = '';
+document.getElementById('itemType').value = '';
+document.getElementById('qtyLama').value = '0';
+document.getElementById('qtyBaru').value = '0';
+document.querySelector('input[name="status"][value="Baik"]').checked = true;
+document.getElementById('itemNote').value = '';
+document.getElementById('itemBarcode').value = '';
+document.getElementById('qrcodeContainer').innerHTML = '';
+delete window.editingItemId;
+
+// Update dashboard
+updateDashboard();
+
+// Show success message
+alert('✅ Barang berhasil ' + (window.editingItemId ? 'diupdate' : 'ditambahkan') + '!\n\nBarcode: ' + barcode);
+
+// Go back to inventory page
+showPage('inventoryPage');
+}
+
+function renderInventoryTable() {
+const tbody = document.getElementById('inventoryTableBody');
+tbody.innerHTML = '';
+
+if (inventoryData.length === 0) {
+tbody.innerHTML = `
+<tr>
+<td colspan="10" style="text-align: center; padding: 40px;">
+Belum ada data inventaris. <br>
+<button class="menu-btn" onclick="showPage('addPage')" style="margin-top: 10px; width: auto; padding: 8px 16px;">
+➕ Tambah Barang Pertama
+</button>
+<br><br>
+<button class="menu-btn" onclick="document.getElementById('inventoryFileInput').click()" style="margin-top: 10px; width: auto; padding: 8px 16px; background: #ffc107; color: #333;">
+📤 Upload Data CSV
+</button>
+</td>
+</tr>
+`;
+return;
+}
+
+inventoryData.forEach((item, index) => {
+const row = document.createElement('tr');
+
+// Status color
+let statusColor = '#4CAF50'; // Baik
+if (item.status === 'Rusak') statusColor = '#f44336';
+if (item.status === 'Perlu Perbaikan') statusColor = '#ff9800';
+
+// Generate barcode jika belum ada
+if (!item.barcode || item.barcode === 'N/A') {
+const prefix = item.nama.substring(0, 2).toUpperCase().replace(/[^A-Z0-9]/g, '');
+item.barcode = prefix + Date.now().toString().slice(-4) + Math.floor(Math.random() * 1000);
+localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
+}
+
+row.innerHTML = `
+<td>${index + 1}</td>
+<td>${item.nama}</td>
+<td>${item.type || '-'}</td>
+<td>${item.qtyLama}</td>
+<td>${item.qtyBaru}</td>
+<td>${item.qtyTotal}</td>
+<td><span style="color: ${statusColor}; font-weight: bold;">${item.status}</span></td>
+<td>${item.barcode}</td>
+<td>
+<button class="btn-info" style="width: auto; padding: 5px 10px; font-size: 12px;" onclick="editItem(${item.id})">✏️</button>
+<button class="btn-danger" style="width: auto; padding: 5px 10px; font-size: 12px;" onclick="deleteItem(${item.id})">🗑️</button>
+<button class="btn-warning" style="width: auto; padding: 5px 10px; font-size: 12px;" onclick="printBarcodeLabel(${item.id})">🖨️</button>
+</td>
+`;
+tbody.appendChild(row);
+});
+}
+
+function deleteItem(id) {
+if (confirm('❓ Apakah Anda yakin ingin menghapus barang ini?')) {
+inventoryData = inventoryData.filter(item => item.id !== id);
+localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
+updateDashboard();
+renderInventoryTable();
+alert('✅ Barang berhasil dihapus!');
+}
+}
+
+function editItem(id) {
+const item = inventoryData.find(i => i.id === id);
+if (!item) return;
+
+// Fill form with item data
+document.getElementById('itemName').value = item.nama;
+document.getElementById('itemType').value = item.type || '';
+document.getElementById('qtyLama').value = item.qtyLama;
+document.getElementById('qtyBaru').value = item.qtyBaru;
+document.querySelector(`input[name="status"][value="${item.status}"]`).checked = true;
+document.getElementById('itemNote').value = item.catatan || '';
+document.getElementById('itemBarcode').value = item.barcode;
+
+// Generate QR preview
+setTimeout(() => {
+if (item.barcode && item.barcode !== 'N/A') {
+generateQR();
+}
+}, 100);
+
+// Store current ID for update
+window.editingItemId = id;
+
+// Go to add page
+showPage('addPage');
+
+// Change save button text
+const saveBtn = document.querySelector('#addPage button[onclick="saveItem()"]');
+if (saveBtn) {
+saveBtn.textContent = '✏️ Update';
+}
+}
+
+// ============================================
+// DASHBOARD FUNCTIONS
+// ============================================
+function updateDashboard() {
+const total = inventoryData.length;
+const baik = inventoryData.filter(i => i.status === 'Baik').length;
+const rusak = inventoryData.filter(i => i.status === 'Rusak').length;
+const perbaikan = inventoryData.filter(i => i.status === 'Perlu Perbaikan').length;
+
+document.getElementById('totalItems').textContent = total;
+document.getElementById('goodItems').textContent = baik;
+document.getElementById('brokenItems').textContent = rusak;
+document.getElementById('repairItems').textContent = perbaikan;
+}
+
+// ============================================
+// BARCODE SCANNER FUNCTIONS
+// ============================================
+document.addEventListener('DOMContentLoaded', function() {
+// Start Scan Button
+document.getElementById('startScan').addEventListener('click', startScanner);
+
+// Stop Scan Button
+document.getElementById('stopScan').addEventListener('click', stopScanner);
+});
+
+function startScanner() {
+// Check camera permission
+navigator.mediaDevices.getUserMedia({ video: true })
+.then(function(stream) {
+// Stop stream temporarily
+stream.getTracks().forEach(track => track.stop());
+
+initQuaggaScanner();
+})
+.catch(function(err) {
+alert('❌ Gagal mengakses kamera!\n\n' + err.message + '\n\nPastikan:\n1. Menggunakan HTTPS (Vercel sudah OK ✅)\n2. Memberikan izin kamera\n3. Menggunakan browser yang support (Chrome, Firefox, Edge)');
+console.error('Camera error:', err);
+});
+}
+
+function initQuaggaScanner() {
+document.getElementById('startScan').style.display = 'none';
+document.getElementById('stopScan').style.display = 'inline-block';
+document.getElementById('scanStatus').innerHTML = '🔍 Memindai... Arahkan kamera ke barcode';
+document.getElementById('scanStatus').style.background = '#fff3cd';
+
+if (quaggaInitialized) {
+Quagga.start();
+return;
+}
+
+Quagga.init({
+inputStream: {
+name: "Live",
+type: "LiveStream",
+target: document.querySelector('#interactive'),
+constraints: {
+width: { min: 640 },
+height: { min: 480 },
+facingMode: "environment",
+aspectRatio: { min: 1, max: 2 }
+},
+},
+decoder: {
+readers: [
+"code_128_reader",
+"ean_reader",
+"ean_8_reader",
+"code_39_reader",
+"upc_reader",
+"code_93_reader"
+]
+},
+locator: {
+patchSize: "medium",
+halfSample: true
+},
+numOfWorkers: 2,
+frequency: 10
+}, function(err) {
+if (err) {
+console.error('Quagga init error:', err);
+document.getElementById('scanStatus').innerHTML = '❌ Error: ' + err.message;
+document.getElementById('scanStatus').style.background = '#ffebee';
+document.getElementById('startScan').style.display = 'inline-block';
+document.getElementById('stopScan').style.display = 'none';
+return;
+}
+
+console.log("Quagga initialized successfully");
+quaggaInitialized = true;
+Quagga.start();
+
+// Auto-stop timeout after 30 seconds
+setTimeout(() => {
+if (quaggaInitialized && !currentBarcode) {
+document.getElementById('scanStatus').innerHTML = '⚠️ Tidak ada barcode terdeteksi dalam 30 detik. Coba lagi!';
+document.getElementById('scanStatus').style.background = '#fff3cd';
+}
+}, 30000);
+});
+
+// Event when barcode is detected
+Quagga.onDetected(function(result) {
+const code = result.codeResult.code;
+console.log('Barcode detected:', code);
+
+// Stop scanner
+stopScanner();
+
+// Process barcode
+currentBarcode = code;
+document.getElementById('scanStatus').innerHTML = '✅ Barcode terdeteksi: <strong>' + code + '</strong>';
+document.getElementById('scanStatus').style.background = '#e8f5e9';
+
+processBarcode(code);
+});
+
+// Error handling
+Quagga.onProcessed(function(result) {
+if (result.error) {
+console.log('Processing error:', result.error);
+}
+});
+}
+
+function stopScanner() {
+if (quaggaInitialized) {
+Quagga.stop();
+}
+document.getElementById('startScan').style.display = 'inline-block';
+document.getElementById('stopScan').style.display = 'none';
+document.getElementById('scanStatus').innerHTML = '⏹️ Scan dihentikan';
+document.getElementById('scanStatus').style.background = '#f0f0f0';
+quaggaInitialized = false;
+currentBarcode = '';
+}
+
+function processBarcode(barcode) {
+// Search in inventory
+const item = inventoryData.find(i => i.barcode === barcode);
+
+const resultDiv = document.getElementById('resultDetails');
+const resultContainer = document.getElementById('scanResult');
+
+// Clear previous results
+resultDiv.innerHTML = '';
+const qrContainer = document.getElementById('scanQRContainer');
+if (qrContainer) {
+qrContainer.remove();
+}
+
+if (item) {
+// Item found
+let statusColor = '#4CAF50';
+if (item.status === 'Rusak') statusColor = '#f44336';
+if (item.status === 'Perlu Perbaikan') statusColor = '#ff9800';
+
+resultDiv.innerHTML = `
+<p><strong>Nama:</strong> ${item.nama}</p>
+<p><strong>Type:</strong> ${item.type || '-'}</p>
+<p><strong>Qty Lama:</strong> ${item.qtyLama}</p>
+<p><strong>Qty Baru:</strong> ${item.qtyBaru}</p>
+<p><strong>Qty Total:</strong> ${item.qtyTotal}</p>
+<p><strong>Status:</strong> <span style="color: ${statusColor}; font-weight: bold;">${item.status}</span></p>
+<p><strong>Catatan:</strong> ${item.catatan || '-'}</p>
+<p><strong>Barcode:</strong> ${item.barcode}</p>
+<div style="margin-top: 15px;">
+<button class="btn-info" style="width: auto; padding: 8px 16px;" onclick="editItem(${item.id})">✏️ Edit</button>
+<button class="btn-danger" style="width: auto; padding: 8px 16px; margin-left: 10px;" onclick="deleteItem(${item.id})">🗑️ Hapus</button>
+<button class="btn-warning" style="width: auto; padding: 8px 16px; margin-left: 10px;" onclick="printBarcodeLabel(${item.id})">🖨️ Print Label</button>
+</div>
+`;
+
+// Show QR code
+showQRForItem(item);
+
+resultContainer.style.display = 'block';
+} else {
+// Item not found
+resultDiv.innerHTML = `
+<p>❌ Barang dengan barcode <strong>${barcode}</strong> tidak ditemukan dalam inventory.</p>
+<button class="btn-success" style="width: auto; padding: 8px 16px; margin-top: 10px;" onclick="addItemFromScan('${barcode}')">
+➕ Tambah Barang Baru
+</button>
+`;
+resultContainer.style.display = 'block';
+}
+}
+
+function manualSearch() {
+const barcode = document.getElementById('manualBarcode').value.trim();
+
+if (!barcode) {
+alert('⚠️ Silakan masukkan barcode terlebih dahulu!');
+return;
+}
+
+document.getElementById('scanStatus').innerHTML = '🔍 Mencari: <strong>' + barcode + '</strong>';
+document.getElementById('scanStatus').style.background = '#e3f2fd';
+currentBarcode = barcode;
+processBarcode(barcode);
+}
+
+function addItemFromScan(barcode) {
+// Go to add page with barcode pre-filled
+showPage('addPage');
+
+// Fill barcode field
+document.getElementById('itemBarcode').value = barcode;
+
+// Focus on name field
+document.getElementById('itemName').focus();
+
+// Show message
+setTimeout(() => {
+alert('ℹ️ Barcode sudah diisi otomatis. Silakan lengkapi data barang lainnya.');
+}, 100);
+}
+
+// ============================================
+// REPORT FUNCTIONS
+// ============================================
+function renderReportTable() {
+const tbody = document.getElementById('reportTableBody');
+tbody.innerHTML = '';
+
+if (inventoryData.length === 0) {
+tbody.innerHTML = `
+<tr>
+<td colspan="8" style="text-align: center; padding: 40px;">
+Belum ada data inventaris.
+</td>
+</tr>
+`;
+return;
+}
+
+inventoryData.forEach((item, index) => {
+const row = document.createElement('tr');
+
+row.innerHTML = `
+<td>${index + 1}</td>
+<td>${item.nama}</td>
+<td>${item.type || '-'}</td>
+<td>${item.qtyLama}</td>
+<td>${item.qtyBaru}</td>
+<td>${item.qtyTotal}</td>
+<td>${item.status}</td>
+<td>${item.catatan || '-'}</td>
+`;
+tbody.appendChild(row);
+});
+}
+
+function downloadPDF() {
+alert('ℹ️ Fitur download PDF akan menggunakan library seperti jsPDF.\n\nUntuk sekarang, Anda bisa print halaman ini (Ctrl+P) dan save sebagai PDF.');
+}
+
+// ============================================
+// INITIALIZE
+// ============================================
+window.onload = function() {
+// Load data from localStorage
+inventoryData = JSON.parse(localStorage.getItem('inventoryData')) || [];
+
+// Auto-generate barcode untuk data lama yang belum punya
+let updated = false;
+inventoryData.forEach(item => {
+if (!item.barcode || item.barcode === 'N/A') {
+const prefix = item.nama.substring(0, 2).toUpperCase().replace(/[^A-Z0-9]/g, '');
+item.barcode = prefix + Date.now().toString().slice(-4) + Math.floor(Math.random() * 1000);
+updated = true;
+}
+});
+
+if (updated) {
+localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
+}
+
+// Update dashboard
+updateDashboard();
+
+console.log('✅ Aplikasi Inventory Sekolah Minggu siap!');
+console.log('✅ QR Code Generator aktif!');
+console.log('✅ Auto-generate barcode untuk semua barang');
+};
+</script>
 </body>
 </html>
