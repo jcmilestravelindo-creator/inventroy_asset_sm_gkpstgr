@@ -213,6 +213,31 @@
             color: var(--white);
         }
 
+        .btn-delete-all {
+            background: linear-gradient(135deg, #ff416c, #ff4b2b);
+            color: var(--white);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(255, 75, 43, 0.4);
+        }
+
+        .btn-delete-all:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 75, 43, 0.6);
+            background: linear-gradient(135deg, #ff315c, #ff3b1b);
+        }
+
+        .btn-delete-all:active {
+            transform: translateY(1px);
+        }
+
         /* Table Styles */
         .card {
             background: var(--white);
@@ -230,6 +255,15 @@
             display: flex;
             align-items: center;
             gap: 10px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
         table {
@@ -444,6 +478,7 @@
             width: 90%;
             max-height: 90vh;
             overflow-y: auto;
+            position: relative;
         }
 
         .modal-title {
@@ -451,6 +486,7 @@
             font-weight: bold;
             margin-bottom: 20px;
             color: var(--dark-color);
+            text-align: center;
         }
 
         .modal-close {
@@ -462,6 +498,58 @@
             font-size: 24px;
             cursor: pointer;
             color: var(--gray);
+        }
+
+        .modal-close:hover {
+            color: var(--danger-color);
+        }
+
+        .modal-body {
+            margin-bottom: 25px;
+        }
+
+        .modal-body p {
+            line-height: 1.6;
+            color: var(--dark-color);
+            margin-bottom: 15px;
+        }
+
+        .modal-body strong {
+            color: var(--danger-color);
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .modal-btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .modal-btn-confirm {
+            background: var(--danger-color);
+            color: var(--white);
+        }
+
+        .modal-btn-confirm:hover {
+            background: #d32f2f;
+        }
+
+        .modal-btn-cancel {
+            background: #999;
+            color: var(--white);
+        }
+
+        .modal-btn-cancel:hover {
+            background: #777;
         }
 
         /* Responsive */
@@ -484,6 +572,57 @@
                 width: 100%;
                 margin-bottom: 5px;
             }
+
+            .card-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .modal-footer {
+                flex-direction: column;
+            }
+
+            .modal-btn {
+                width: 100%;
+            }
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--white);
+            color: var(--dark-color);
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            border-left: 5px solid var(--success-color);
+        }
+
+        .toast.error {
+            border-left: 5px solid var(--danger-color);
+        }
+
+        .toast.warning {
+            border-left: 5px solid var(--warning-color);
+        }
+
+        .toast-icon {
+            font-size: 20px;
         }
     </style>
 </head>
@@ -545,9 +684,15 @@
 
         <!-- Inventory List Page -->
         <div id="inventory-page" class="card" style="display: none;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div class="card-header">
                 <h2 class="card-title">📋 Daftar Inventaris</h2>
-                <button class="btn btn-success" onclick="showPage('add-item-page')">➕ Tambah Barang</button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-success" onclick="showPage('add-item-page')">➕ Tambah Barang</button>
+                    <button class="btn-delete-all" onclick="showDeleteAllModal()">
+                        <span>🗑️</span>
+                        <span>Hapus Semua Data</span>
+                    </button>
+                </div>
             </div>
             <table id="inventory-table">
                 <thead>
@@ -678,7 +823,7 @@
 
         <!-- User Management Page -->
         <div id="user-management-page" class="card" style="display: none;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div class="card-header">
                 <h2 class="card-title">👥 User Management</h2>
                 <button class="btn btn-success" onclick="showAddUserModal()">➕ Tambah User</button>
             </div>
@@ -744,6 +889,24 @@
         </div>
     </div>
 
+    <!-- Delete All Confirmation Modal -->
+    <div class="modal" id="delete-all-modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeDeleteAllModal()">×</button>
+            <h3 class="modal-title">⚠️ Konfirmasi Hapus Semua Data</h3>
+            <div class="modal-body">
+                <p><strong>PERINGATAN!</strong> Anda akan menghapus <strong>SEMUA</strong> data inventaris.</p>
+                <p>Operasi ini <strong>TIDAK DAPAT DIBATALKAN</strong> dan semua data akan hilang permanen.</p>
+                <p>Untuk konfirmasi, ketik <strong>"HAPUS SEMUA"</strong> di bawah ini:</p>
+                <input type="text" id="delete-confirm-input" placeholder="Ketik HAPUS SEMUA untuk konfirmasi" style="width: 100%; padding: 10px; margin-top: 10px; border: 2px solid #ddd; border-radius: 5px;">
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" onclick="closeDeleteAllModal()">❌ Batal</button>
+                <button class="modal-btn modal-btn-confirm" onclick="confirmDeleteAll()" id="confirm-delete-btn">🗑️ Hapus Semua</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Add User Modal -->
     <div class="modal" id="add-user-modal">
         <div class="modal-content">
@@ -771,6 +934,12 @@
                 </div>
             </form>
         </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <span class="toast-icon" id="toast-icon"></span>
+        <span id="toast-message"></span>
     </div>
 
     <script>
@@ -817,6 +986,7 @@
             document.getElementById('cancel-btn').addEventListener('click', () => showPage('dashboard-page'));
             document.getElementById('download-pdf').addEventListener('click', downloadPDF);
             document.getElementById('add-user-form').addEventListener('submit', addUser);
+            document.getElementById('delete-confirm-input').addEventListener('input', validateDeleteInput);
 
             // Drag and drop
             const dropArea = document.getElementById('drop-area');
@@ -849,8 +1019,9 @@
                 document.getElementById('dashboard').style.display = 'block';
                 showPage('dashboard-page');
                 loadInventoryData();
+                showToast('success', '✅ Login berhasil! Selamat datang, ' + user.username);
             } else {
-                alert('Username atau password salah!');
+                showToast('error', '❌ Username atau password salah!');
             }
         }
 
@@ -860,6 +1031,7 @@
             document.getElementById('dashboard').style.display = 'none';
             document.getElementById('username').value = '';
             document.getElementById('password').value = '';
+            showToast('success', '✅ Logout berhasil!');
         }
 
         // Page Navigation
@@ -886,7 +1058,7 @@
             tbody.innerHTML = '';
 
             if (inventoryData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">Tidak ada data inventaris</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; font-size: 18px; color: #999;">📭 Tidak ada data inventaris</td></tr>';
             } else {
                 inventoryData.forEach((item, index) => {
                     const qtyTotal = parseInt(item.qtyLama || 0) + parseInt(item.qtyBaru || 0);
@@ -972,7 +1144,7 @@
             localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
             loadInventoryData();
             showPage('inventory-page');
-            alert(id ? 'Data berhasil diupdate!' : 'Data berhasil ditambahkan!');
+            showToast('success', id ? '✅ Data berhasil diupdate!' : '✅ Data berhasil ditambahkan!');
             document.getElementById('item-form').reset();
             document.getElementById('item-id').value = '';
         }
@@ -1004,8 +1176,57 @@
                 inventoryData = inventoryData.filter(i => i.id != id);
                 localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
                 loadInventoryData();
-                alert('Data berhasil dihapus!');
+                showToast('success', '✅ Data berhasil dihapus!');
             }
+        }
+
+        // Delete All Functionality
+        function showDeleteAllModal() {
+            if (inventoryData.length === 0) {
+                showToast('warning', '⚠️ Tidak ada data untuk dihapus!');
+                return;
+            }
+            document.getElementById('delete-all-modal').classList.add('show');
+            document.getElementById('delete-confirm-input').value = '';
+            document.getElementById('confirm-delete-btn').disabled = true;
+            document.getElementById('confirm-delete-btn').style.opacity = '0.5';
+        }
+
+        function closeDeleteAllModal() {
+            document.getElementById('delete-all-modal').classList.remove('show');
+        }
+
+        function validateDeleteInput() {
+            const input = document.getElementById('delete-confirm-input').value.trim();
+            const confirmBtn = document.getElementById('confirm-delete-btn');
+            if (input === 'HAPUS SEMUA') {
+                confirmBtn.disabled = false;
+                confirmBtn.style.opacity = '1';
+            } else {
+                confirmBtn.disabled = true;
+                confirmBtn.style.opacity = '0.5';
+            }
+        }
+
+        function confirmDeleteAll() {
+            const input = document.getElementById('delete-confirm-input').value.trim();
+            if (input !== 'HAPUS SEMUA') {
+                showToast('error', '❌ Konfirmasi tidak valid!');
+                return;
+            }
+
+            // Clear all inventory data
+            inventoryData = [];
+            localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
+            
+            // Close modal
+            closeDeleteAllModal();
+            
+            // Reload data
+            loadInventoryData();
+            
+            // Show success message
+            showToast('success', '✅ Semua data inventaris berhasil dihapus!');
         }
 
         // Barcode Scanner
@@ -1044,7 +1265,7 @@
                 }, function(err) {
                     if (err) {
                         console.error(err);
-                        alert("Error saat membuka kamera. Pastikan kamera diizinkan.");
+                        showToast('error', '❌ Error saat membuka kamera. Pastikan kamera diizinkan.');
                         return;
                     }
                     Quagga.start();
@@ -1074,7 +1295,7 @@
         function searchBarcode() {
             const barcode = document.getElementById('manual-barcode').value.trim();
             if (!barcode) {
-                alert('Masukkan barcode terlebih dahulu!');
+                showToast('warning', '⚠️ Masukkan barcode terlebih dahulu!');
                 return;
             }
             searchItemByBarcode(barcode);
@@ -1103,9 +1324,11 @@
                     </div>
                 `;
                 resultDiv.classList.add('show');
+                showToast('success', '✅ Barang ditemukan!');
             } else {
-                resultContent.innerHTML = '<p style="color: #f44336; margin-top: 15px;">Barang tidak ditemukan!</p>';
+                resultContent.innerHTML = '<p style="color: #f44336; margin-top: 15px; font-weight: bold;">❌ Barang tidak ditemukan!</p>';
                 resultDiv.classList.add('show');
+                showToast('error', '❌ Barang tidak ditemukan!');
             }
         }
 
@@ -1148,7 +1371,7 @@
         function importCSVData() {
             const file = document.getElementById('csv-file').files[0];
             if (!file) {
-                alert('Pilih file CSV terlebih dahulu!');
+                showToast('warning', '⚠️ Pilih file CSV terlebih dahulu!');
                 return;
             }
 
@@ -1158,7 +1381,7 @@
                 const lines = csv.split('\n');
                 
                 if (lines.length <= 1) {
-                    alert('File CSV kosong!');
+                    showToast('error', '❌ File CSV kosong!');
                     return;
                 }
 
@@ -1186,7 +1409,7 @@
                 localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
                 loadInventoryData();
                 showPage('inventory-page');
-                alert(`Berhasil mengimport ${lines.length - 1} data!`);
+                showToast('success', `✅ Berhasil mengimport ${lines.length - 1} data!`);
                 document.getElementById('csv-file').value = '';
                 document.getElementById('csv-preview').innerHTML = `
                     <tr>
@@ -1232,7 +1455,7 @@
             const role = document.getElementById('new-role').value;
 
             if (usersData.some(u => u.username === username)) {
-                alert('Username sudah ada!');
+                showToast('error', '❌ Username sudah ada!');
                 return;
             }
 
@@ -1247,13 +1470,13 @@
             localStorage.setItem('usersData', JSON.stringify(usersData));
             loadUsersData();
             closeAddUserModal();
-            alert('User berhasil ditambahkan!');
+            showToast('success', '✅ User berhasil ditambahkan!');
         }
 
         function deleteUser(id) {
             const user = usersData.find(u => u.id == id);
             if (user && user.username === 'admin') {
-                alert('Tidak bisa menghapus user admin default!');
+                showToast('error', '❌ Tidak bisa menghapus user admin default!');
                 return;
             }
 
@@ -1261,7 +1484,7 @@
                 usersData = usersData.filter(u => u.id != id);
                 localStorage.setItem('usersData', JSON.stringify(usersData));
                 loadUsersData();
-                alert('User berhasil dihapus!');
+                showToast('success', '✅ User berhasil dihapus!');
             }
         }
 
@@ -1287,11 +1510,16 @@
             });
 
             if (inventoryData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Tidak ada data</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; font-size: 18px; color: #999;">📭 Tidak ada data</td></tr>';
             }
         }
 
         function downloadPDF() {
+            if (inventoryData.length === 0) {
+                showToast('warning', '⚠️ Tidak ada data untuk diexport!');
+                return;
+            }
+
             const { jsPDF } = window.jspdf;
             
             // Create new PDF
@@ -1353,6 +1581,31 @@
             
             // Save PDF
             pdf.save(`Laporan_Inventaris_SM_${today.toISOString().split('T')[0]}.pdf`);
+            showToast('success', '✅ PDF berhasil diunduh!');
+        }
+
+        // Toast Notification
+        function showToast(type, message) {
+            const toast = document.getElementById('toast');
+            const toastIcon = document.getElementById('toast-icon');
+            const toastMessage = document.getElementById('toast-message');
+            
+            toast.className = 'toast ' + type;
+            toastMessage.textContent = message;
+            
+            if (type === 'success') {
+                toastIcon.textContent = '✅';
+            } else if (type === 'error') {
+                toastIcon.textContent = '❌';
+            } else if (type === 'warning') {
+                toastIcon.textContent = '⚠️';
+            }
+            
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
         }
     </script>
 </body>
