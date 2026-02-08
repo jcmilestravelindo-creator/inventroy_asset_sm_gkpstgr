@@ -11,8 +11,6 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- PapaParse untuk parsing CSV -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-    <!-- QR Code Generator -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <style>
         * {
@@ -371,22 +369,6 @@
             color: #333;
         }
         
-        /* QR Code Container */
-        #qrcodeContainer {
-            text-align: center;
-            margin-top: 10px;
-            padding: 15px;
-            background: #f9f9f9;
-            border-radius: 8px;
-            border: 2px dashed #667eea;
-        }
-        
-        #qrcodeContainer canvas,
-        #qrcodeContainer img {
-            margin: 0 auto;
-            display: block;
-        }
-        
         /* Scan Control Buttons */
         .scan-controls {
             display: flex;
@@ -521,17 +503,6 @@
         
         .import-summary strong {
             color: #2e7d32;
-        }
-        
-        /* Print Label Styles */
-        @media print {
-            .container, .page {
-                padding: 0;
-                margin: 0;
-            }
-            .action-buttons, .dashboard-menu, button {
-                display: none !important;
-            }
         }
         
         /* Responsive */
@@ -721,14 +692,7 @@
                 </div>
                 <div class="form-group-inline" style="grid-column: span 2;">
                     <label for="itemBarcode">Barcode</label>
-                    <input type="text" id="itemBarcode" placeholder="Scan atau ketik barcode (otomatis jika kosong)">
-                </div>
-                <div class="form-group-inline" style="grid-column: span 2;">
-                    <label>QR Code Preview</label>
-                    <div id="qrcodeContainer"></div>
-                    <button type="button" class="btn-info" style="width: auto; margin-top: 10px;" onclick="generateQR()">
-                        🖨️ Generate QR Code
-                    </button>
+                    <input type="text" id="itemBarcode" placeholder="Scan atau ketik barcode">
                 </div>
             </div>
             
@@ -871,210 +835,12 @@
                 stopScanner();
             }
             
-            // Clear QR code container when leaving add page
-            if (pageId !== 'addPage') {
-                document.getElementById('qrcodeContainer').innerHTML = '';
-            }
-            
             // Refresh data if needed
             if (pageId === 'inventoryPage') {
                 renderInventoryTable();
             } else if (pageId === 'reportPage') {
                 renderReportTable();
             }
-        }
-        
-        // ============================================
-        // QR CODE FUNCTIONS
-        // ============================================
-        function generateQR() {
-            const name = document.getElementById('itemName').value.trim();
-            const type = document.getElementById('itemType').value.trim();
-            let barcode = document.getElementById('itemBarcode').value.trim();
-            
-            // Validasi nama barang
-            if (!name) {
-                alert('⚠️ Nama barang harus diisi terlebih dahulu!');
-                return;
-            }
-            
-            // Generate barcode otomatis jika kosong
-            if (!barcode) {
-                const prefix = name.substring(0, 2).toUpperCase();
-                barcode = prefix + Date.now().toString().slice(-6) + Math.floor(Math.random() * 100);
-                document.getElementById('itemBarcode').value = barcode;
-                alert('ℹ️ Barcode otomatis digenerate: ' + barcode);
-            }
-            
-            // Data untuk QR code (format JSON string)
-            const qrData = JSON.stringify({
-                id: window.editingItemId || Date.now(),
-                nama: name,
-                type: type || '-',
-                barcode: barcode,
-                timestamp: new Date().toISOString()
-            });
-            
-            // Clear container
-            const container = document.getElementById('qrcodeContainer');
-            container.innerHTML = '';
-            
-            // Generate QR code
-            new QRCode(container, {
-                text: qrData,
-                width: 160,
-                height: 160,
-                correctLevel: QRCode.CorrectLevel.H
-            });
-            
-            // Tampilkan info
-            container.innerHTML += `<p style="margin-top: 10px; font-size: 12px; color: #666;">Barcode: ${barcode}</p>`;
-            
-            alert('✅ QR Code berhasil digenerate!\n\nBarcode: ' + barcode + '\n\nScan QR code ini untuk melihat detail barang.');
-        }
-        
-        function showQRForItem(item) {
-            const resultDiv = document.getElementById('resultDetails');
-            
-            // Buat container untuk QR code
-            const qrContainer = document.createElement('div');
-            qrContainer.id = 'scanQRContainer';
-            qrContainer.style.marginTop = '20px';
-            qrContainer.style.textAlign = 'center';
-            qrContainer.style.padding = '15px';
-            qrContainer.style.background = '#f9f9f9';
-            qrContainer.style.borderRadius = '8px';
-            qrContainer.style.border = '2px solid #4CAF50';
-            
-            // Data QR
-            const qrData = JSON.stringify({
-                id: item.id,
-                nama: item.nama,
-                type: item.type || '-',
-                qty: item.qtyTotal,
-                status: item.status,
-                barcode: item.barcode,
-                catatan: item.catatan || '-'
-            });
-            
-            // Tambahkan container ke result
-            resultDiv.appendChild(qrContainer);
-            
-            // Generate QR code
-            new QRCode(qrContainer, {
-                text: qrData,
-                width: 180,
-                height: 180,
-                correctLevel: QRCode.CorrectLevel.H
-            });
-            
-            // Tambahkan label
-            qrContainer.innerHTML += `<p style="margin-top: 10px; font-size: 12px; color: #666;">Scan untuk info lengkap</p>`;
-        }
-        
-        function printBarcodeLabel(id) {
-            const item = inventoryData.find(i => i.id === id);
-            if (!item) return;
-            
-            // Generate barcode jika belum ada
-            if (item.barcode === 'N/A' || !item.barcode) {
-                const prefix = item.nama.substring(0, 2).toUpperCase();
-                item.barcode = prefix + Date.now().toString().slice(-6) + Math.floor(Math.random() * 100);
-                localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
-            }
-            
-            // Buat window baru untuk print
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Label Barcode - ${item.nama}</title>
-                    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-                    <style>
-                        body { 
-                            font-family: Arial, sans-serif; 
-                            text-align: center; 
-                            padding: 20px; 
-                            margin: 0;
-                            background: white;
-                        }
-                        .label-container {
-                            width: 300px;
-                            margin: 0 auto;
-                            border: 2px solid #000;
-                            padding: 15px;
-                            page-break-after: always;
-                        }
-                        .item-name {
-                            font-size: 18px;
-                            font-weight: bold;
-                            margin: 10px 0;
-                            color: #333;
-                        }
-                        .item-detail {
-                            font-size: 12px;
-                            margin: 5px 0;
-                            color: #666;
-                        }
-                        #qrcode {
-                            margin: 15px auto;
-                            width: 120px;
-                            height: 120px;
-                        }
-                        .barcode-text {
-                            font-family: 'Courier New', monospace;
-                            font-size: 10px;
-                            margin-top: 5px;
-                            padding: 3px;
-                            background: #f0f0f0;
-                            border-radius: 3px;
-                        }
-                        @media print {
-                            body { padding: 0; }
-                            .no-print { display: none; }
-                        }
-                    </style>
-                </head>
-                <body onload="generate()">
-                    <div class="label-container">
-                        <div class="item-name">${item.nama}</div>
-                        <div class="item-detail">Type: ${item.type || '-'}</div>
-                        <div class="item-detail">Qty: ${item.qtyTotal}</div>
-                        <div class="item-detail">Status: ${item.status}</div>
-                        <div id="qrcode"></div>
-                        <div class="barcode-text">${item.barcode}</div>
-                    </div>
-                    <div class="no-print" style="margin-top: 20px;">
-                        <button onclick="window.print()" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">
-                            🖨️ Print Label
-                        </button>
-                        <button onclick="window.close()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
-                            ✖️ Tutup
-                        </button>
-                    </div>
-                    <script>
-                        function generate() {
-                            const data = ${JSON.stringify(JSON.stringify({
-                                id: item.id,
-                                nama: item.nama,
-                                type: item.type,
-                                qty: item.qtyTotal,
-                                status: item.status,
-                                barcode: item.barcode
-                            }))};
-                            new QRCode(document.getElementById("qrcode"), {
-                                text: data,
-                                width: 120,
-                                height: 120,
-                                correctLevel: QRCode.CorrectLevel.H
-                            });
-                        }
-                    </script>
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
         }
         
         // ============================================
@@ -1197,14 +963,13 @@
             }
             
             if (confirm(`❓ Apakah Anda yakin ingin mengimport ${csvDataPreview.length} data barang?\n\nData lama akan ditambahkan dengan data baru.`)) {
-                // Generate ID unik dan barcode untuk setiap item
+                // Generate ID unik untuk setiap item
                 const importedData = csvDataPreview.map(item => {
-                    // Generate barcode dari nama barang
+                    // Cari barcode dari nama atau type jika ada
                     let barcode = 'N/A';
-                    if (item.nama && item.nama.trim() !== '') {
-                        const prefix = item.nama.substring(0, 2).toUpperCase().replace(/[^A-Z0-9]/g, '');
-                        barcode = prefix + Date.now().toString().slice(-4) + Math.floor(Math.random() * 1000);
-                    }
+                    if (item.nama.toLowerCase().includes('gitar')) barcode = 'GT' + Date.now() + Math.floor(Math.random() * 1000);
+                    if (item.nama.toLowerCase().includes('lemari')) barcode = 'LM' + Date.now() + Math.floor(Math.random() * 1000);
+                    if (item.nama.toLowerCase().includes('speaker')) barcode = 'SP' + Date.now() + Math.floor(Math.random() * 1000);
                     
                     return {
                         id: Date.now() + Math.floor(Math.random() * 1000000),
@@ -1243,7 +1008,7 @@
                 renderInventoryTable();
                 
                 // Tampilkan pesan sukses
-                alert(`✅ Berhasil mengimport ${importedData.length} data barang!\n\nSemua barang sudah memiliki barcode otomatis.`);
+                alert(`✅ Berhasil mengimport ${importedData.length} data barang!`);
             }
         }
         
@@ -1271,22 +1036,16 @@
             const qtyBaru = parseInt(document.getElementById('qtyBaru').value) || 0;
             const status = document.querySelector('input[name="status"]:checked').value;
             const catatan = document.getElementById('itemNote').value.trim();
-            let barcode = document.getElementById('itemBarcode').value.trim();
+            const barcode = document.getElementById('itemBarcode').value.trim();
             
             if (!name) {
                 alert('⚠️ Nama barang harus diisi!');
                 return;
             }
             
-            // Generate barcode otomatis jika kosong
-            if (!barcode) {
-                const prefix = name.substring(0, 2).toUpperCase().replace(/[^A-Z0-9]/g, '');
-                barcode = prefix + Date.now().toString().slice(-6) + Math.floor(Math.random() * 100);
-            }
-            
             // Create new item
             const newItem = {
-                id: window.editingItemId || Date.now(),
+                id: Date.now(),
                 nama: name,
                 type: type,
                 qtyLama: qtyLama,
@@ -1294,19 +1053,11 @@
                 qtyTotal: qtyLama + qtyBaru,
                 status: status,
                 catatan: catatan,
-                barcode: barcode
+                barcode: barcode || 'N/A'
             };
             
-            if (window.editingItemId) {
-                // Update existing item
-                const index = inventoryData.findIndex(i => i.id === window.editingItemId);
-                if (index !== -1) {
-                    inventoryData[index] = newItem;
-                }
-            } else {
-                // Add new item
-                inventoryData.push(newItem);
-            }
+            // Add to inventory
+            inventoryData.push(newItem);
             
             // Save to localStorage
             localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
@@ -1319,14 +1070,12 @@
             document.querySelector('input[name="status"][value="Baik"]').checked = true;
             document.getElementById('itemNote').value = '';
             document.getElementById('itemBarcode').value = '';
-            document.getElementById('qrcodeContainer').innerHTML = '';
-            delete window.editingItemId;
             
             // Update dashboard
             updateDashboard();
             
             // Show success message
-            alert('✅ Barang berhasil ' + (window.editingItemId ? 'diupdate' : 'ditambahkan') + '!\n\nBarcode: ' + barcode);
+            alert('✅ Barang berhasil ditambahkan!');
             
             // Go back to inventory page
             showPage('inventoryPage');
@@ -1339,7 +1088,7 @@
             if (inventoryData.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="10" style="text-align: center; padding: 40px;">
+                        <td colspan="9" style="text-align: center; padding: 40px;">
                             Belum ada data inventaris. <br>
                             <button class="menu-btn" onclick="showPage('addPage')" style="margin-top: 10px; width: auto; padding: 8px 16px;">
                                 ➕ Tambah Barang Pertama
@@ -1362,13 +1111,6 @@
                 if (item.status === 'Rusak') statusColor = '#f44336';
                 if (item.status === 'Perlu Perbaikan') statusColor = '#ff9800';
                 
-                // Generate barcode jika belum ada
-                if (!item.barcode || item.barcode === 'N/A') {
-                    const prefix = item.nama.substring(0, 2).toUpperCase().replace(/[^A-Z0-9]/g, '');
-                    item.barcode = prefix + Date.now().toString().slice(-4) + Math.floor(Math.random() * 1000);
-                    localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
-                }
-                
                 row.innerHTML = `
                     <td>${index + 1}</td>
                     <td>${item.nama}</td>
@@ -1381,7 +1123,6 @@
                     <td>
                         <button class="btn-info" style="width: auto; padding: 5px 10px; font-size: 12px;" onclick="editItem(${item.id})">✏️</button>
                         <button class="btn-danger" style="width: auto; padding: 5px 10px; font-size: 12px;" onclick="deleteItem(${item.id})">🗑️</button>
-                        <button class="btn-warning" style="width: auto; padding: 5px 10px; font-size: 12px;" onclick="printBarcodeLabel(${item.id})">🖨️</button>
                     </td>
                 `;
                 
@@ -1412,13 +1153,6 @@
             document.getElementById('itemNote').value = item.catatan || '';
             document.getElementById('itemBarcode').value = item.barcode;
             
-            // Generate QR preview
-            setTimeout(() => {
-                if (item.barcode && item.barcode !== 'N/A') {
-                    generateQR();
-                }
-            }, 100);
-            
             // Store current ID for update
             window.editingItemId = id;
             
@@ -1427,8 +1161,67 @@
             
             // Change save button text
             const saveBtn = document.querySelector('#addPage button[onclick="saveItem()"]');
-            if (saveBtn) {
-                saveBtn.textContent = '✏️ Update';
+            saveBtn.textContent = '✏️ Update';
+            saveBtn.onclick = function() { updateItem(id); };
+        }
+        
+        function updateItem(id) {
+            const name = document.getElementById('itemName').value.trim();
+            const type = document.getElementById('itemType').value.trim();
+            const qtyLama = parseInt(document.getElementById('qtyLama').value) || 0;
+            const qtyBaru = parseInt(document.getElementById('qtyBaru').value) || 0;
+            const status = document.querySelector('input[name="status"]:checked').value;
+            const catatan = document.getElementById('itemNote').value.trim();
+            const barcode = document.getElementById('itemBarcode').value.trim();
+            
+            if (!name) {
+                alert('⚠️ Nama barang harus diisi!');
+                return;
+            }
+            
+            // Find and update item
+            const index = inventoryData.findIndex(i => i.id === id);
+            if (index !== -1) {
+                inventoryData[index] = {
+                    ...inventoryData[index],
+                    nama: name,
+                    type: type,
+                    qtyLama: qtyLama,
+                    qtyBaru: qtyBaru,
+                    qtyTotal: qtyLama + qtyBaru,
+                    status: status,
+                    catatan: catatan,
+                    barcode: barcode || 'N/A'
+                };
+                
+                // Save to localStorage
+                localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
+                
+                // Clear form
+                document.getElementById('itemName').value = '';
+                document.getElementById('itemType').value = '';
+                document.getElementById('qtyLama').value = '0';
+                document.getElementById('qtyBaru').value = '0';
+                document.querySelector('input[name="status"][value="Baik"]').checked = true;
+                document.getElementById('itemNote').value = '';
+                document.getElementById('itemBarcode').value = '';
+                delete window.editingItemId;
+                
+                // Update dashboard
+                updateDashboard();
+                
+                // Show success message
+                alert('✅ Barang berhasil diupdate!');
+                
+                // Go back to inventory page
+                showPage('inventoryPage');
+                
+                // Restore save button
+                const saveBtn = document.querySelector('#addPage button[onclick="updateItem(' + id + ')"]');
+                if (saveBtn) {
+                    saveBtn.textContent = '💾 Simpan';
+                    saveBtn.onclick = saveItem;
+                }
             }
         }
         
@@ -1578,13 +1371,6 @@
             const resultDiv = document.getElementById('resultDetails');
             const resultContainer = document.getElementById('scanResult');
             
-            // Clear previous results
-            resultDiv.innerHTML = '';
-            const qrContainer = document.getElementById('scanQRContainer');
-            if (qrContainer) {
-                qrContainer.remove();
-            }
-            
             if (item) {
                 // Item found
                 let statusColor = '#4CAF50';
@@ -1603,13 +1389,8 @@
                     <div style="margin-top: 15px;">
                         <button class="btn-info" style="width: auto; padding: 8px 16px;" onclick="editItem(${item.id})">✏️ Edit</button>
                         <button class="btn-danger" style="width: auto; padding: 8px 16px; margin-left: 10px;" onclick="deleteItem(${item.id})">🗑️ Hapus</button>
-                        <button class="btn-warning" style="width: auto; padding: 8px 16px; margin-left: 10px;" onclick="printBarcodeLabel(${item.id})">🖨️ Print Label</button>
                     </div>
                 `;
-                
-                // Show QR code
-                showQRForItem(item);
-                
                 resultContainer.style.display = 'block';
             } else {
                 // Item not found
@@ -1646,11 +1427,6 @@
             
             // Focus on name field
             document.getElementById('itemName').focus();
-            
-            // Show message
-            setTimeout(() => {
-                alert('ℹ️ Barcode sudah diisi otomatis. Silakan lengkapi data barang lainnya.');
-            }, 100);
         }
         
         // ============================================
@@ -1700,26 +1476,10 @@
             // Load data from localStorage
             inventoryData = JSON.parse(localStorage.getItem('inventoryData')) || [];
             
-            // Auto-generate barcode untuk data lama yang belum punya
-            let updated = false;
-            inventoryData.forEach(item => {
-                if (!item.barcode || item.barcode === 'N/A') {
-                    const prefix = item.nama.substring(0, 2).toUpperCase().replace(/[^A-Z0-9]/g, '');
-                    item.barcode = prefix + Date.now().toString().slice(-4) + Math.floor(Math.random() * 1000);
-                    updated = true;
-                }
-            });
-            
-            if (updated) {
-                localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
-            }
-            
             // Update dashboard
             updateDashboard();
             
             console.log('✅ Aplikasi Inventory Sekolah Minggu siap!');
-            console.log('✅ QR Code Generator aktif!');
-            console.log('✅ Auto-generate barcode untuk semua barang');
         };
     </script>
 </body>
