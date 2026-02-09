@@ -624,9 +624,38 @@
         .toast-icon {
             font-size: 20px;
         }
+
+        /* Loading Spinner */
+        .loading-spinner {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+        }
+
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
+    <!-- Loading Spinner -->
+    <div class="loading-spinner" id="loading-spinner">
+        <div class="spinner"></div>
+    </div>
+
     <!-- Login Page -->
     <div id="login-page">
         <div class="login-title">🔐 Login Inventory Sekolah Minggu</div>
@@ -943,6 +972,10 @@
     </div>
 
     <script>
+        // ============================================
+        // SESSION MANAGEMENT - PERSISTENT LOGIN
+        // ============================================
+        
         // Global Variables
         let currentUser = null;
         let inventoryData = JSON.parse(localStorage.getItem('inventoryData')) || [];
@@ -952,9 +985,62 @@
         ];
         let scannerInitialized = false;
         let quaggaInstance = null;
+        let currentPage = localStorage.getItem('currentPage') || 'dashboard-page'; // Track current page
 
-        // Initialize on load
+        // ============================================
+        // SESSION PERSISTENCE FUNCTIONS
+        // ============================================
+        
+        // Save session state to localStorage
+        function saveSessionState() {
+            if (currentUser) {
+                localStorage.setItem('currentUser', JSON.stringify({
+                    id: currentUser.id,
+                    username: currentUser.username,
+                    role: currentUser.role
+                }));
+                localStorage.setItem('isLoggedIn', 'true');
+                localStorage.setItem('currentPage', currentPage);
+            }
+        }
+
+        // Restore session state from localStorage
+        function restoreSessionState() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+            const savedUser = localStorage.getItem('currentUser');
+            
+            if (isLoggedIn && savedUser) {
+                try {
+                    currentUser = JSON.parse(savedUser);
+                    return true;
+                } catch (e) {
+                    console.error('Error restoring session:', e);
+                    clearSession();
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        // Clear session state
+        function clearSession() {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('currentPage');
+        }
+
+        // ============================================
+        // INITIALIZE ON LOAD WITH SESSION RESTORE
+        // ============================================
+        
         document.addEventListener('DOMContentLoaded', function() {
+            // Show loading spinner
+            document.getElementById('loading-spinner').style.display = 'block';
+
+            // Restore session state
+            const hasActiveSession = restoreSessionState();
+
             // Set current date for report
             const today = new Date();
             document.getElementById('report-date').textContent = today.toLocaleDateString('id-ID', {
@@ -1003,9 +1089,34 @@
                     handleFileSelect();
                 }
             });
+
+            // Restore page state after session check
+            setTimeout(() => {
+                if (hasActiveSession) {
+                    // User has active session - show dashboard
+                    document.getElementById('user-name').textContent = currentUser.username;
+                    document.getElementById('login-page').style.display = 'none';
+                    document.getElementById('dashboard').style.display = 'block';
+                    
+                    // Restore last visited page
+                    showPage(currentPage);
+                    
+                    showToast('success', '✅ Selamat datang kembali, ' + currentUser.username + '!');
+                } else {
+                    // No active session - show login
+                    document.getElementById('login-page').style.display = 'block';
+                    document.getElementById('dashboard').style.display = 'none';
+                }
+                
+                // Hide loading spinner
+                document.getElementById('loading-spinner').style.display = 'none';
+            }, 300);
         });
 
-        // Login & Logout
+        // ============================================
+        // LOGIN & LOGOUT WITH SESSION MANAGEMENT
+        // ============================================
+        
         function handleLogin(e) {
             e.preventDefault();
             const username = document.getElementById('username').value;
@@ -1014,6 +1125,10 @@
             const user = usersData.find(u => u.username === username && u.password === password);
             if (user) {
                 currentUser = user;
+                
+                // Save session state
+                saveSessionState();
+                
                 document.getElementById('user-name').textContent = user.username;
                 document.getElementById('login-page').style.display = 'none';
                 document.getElementById('dashboard').style.display = 'block';
@@ -1026,6 +1141,9 @@
         }
 
         function handleLogout() {
+            // Clear session state
+            clearSession();
+            
             currentUser = null;
             document.getElementById('login-page').style.display = 'block';
             document.getElementById('dashboard').style.display = 'none';
@@ -1034,25 +1152,38 @@
             showToast('success', '✅ Logout berhasil!');
         }
 
-        // Page Navigation
+        // ============================================
+        // PAGE NAVIGATION WITH SESSION TRACKING
+        // ============================================
+        
         function showPage(pageId) {
+            // Update current page tracking
+            currentPage = pageId;
+            saveSessionState();
+
             // Hide all pages
             document.querySelectorAll('.card').forEach(card => {
                 if (card.id !== 'dashboard') card.style.display = 'none';
             });
+            
             // Show selected page
             document.getElementById(pageId).style.display = 'block';
+            
             // Stop scanner if leaving scan page
             if (pageId !== 'scan-page' && quaggaInstance) {
                 stopScanner();
             }
+            
             // Regenerate barcode when showing add item page
             if (pageId === 'add-item-page') {
                 generateBarcode();
             }
         }
 
-        // Inventory Management
+        // ============================================
+        // EXISTING INVENTORY FUNCTIONS (UNCHANGED)
+        // ============================================
+        
         function loadInventoryData() {
             const tbody = document.getElementById('inventory-tbody');
             tbody.innerHTML = '';
@@ -1180,7 +1311,10 @@
             }
         }
 
-        // Delete All Functionality
+        // ============================================
+        // DELETE ALL FUNCTIONALITY (UNCHANGED)
+        // ============================================
+        
         function showDeleteAllModal() {
             if (inventoryData.length === 0) {
                 showToast('warning', '⚠️ Tidak ada data untuk dihapus!');
@@ -1229,7 +1363,10 @@
             showToast('success', '✅ Semua data inventaris berhasil dihapus!');
         }
 
-        // Barcode Scanner
+        // ============================================
+        // BARCODE SCANNER (UNCHANGED)
+        // ============================================
+        
         function startScanner() {
             if (!scannerInitialized) {
                 Quagga.init({
@@ -1332,7 +1469,10 @@
             }
         }
 
-        // CSV Upload
+        // ============================================
+        // CSV UPLOAD (UNCHANGED)
+        // ============================================
+        
         function handleFileSelect() {
             const file = document.getElementById('csv-file').files[0];
             if (!file) return;
@@ -1420,7 +1560,10 @@
             reader.readAsText(file);
         }
 
-        // User Management
+        // ============================================
+        // USER MANAGEMENT (UNCHANGED)
+        // ============================================
+        
         function loadUsersData() {
             const tbody = document.getElementById('user-tbody');
             tbody.innerHTML = '';
@@ -1488,7 +1631,10 @@
             }
         }
 
-        // Report
+        // ============================================
+        // REPORT & TOAST (UNCHANGED)
+        // ============================================
+        
         function loadReportData() {
             const tbody = document.getElementById('report-tbody');
             tbody.innerHTML = '';
